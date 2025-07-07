@@ -53,7 +53,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         const {
             total_videos, top_songs, top_artists, songs_per_day,
-            songs_per_hour, songs_per_day_of_week, top_songs_weekly, top_songs_monthly
+            songs_per_hour, songs_per_day_of_week, top_songs_weekly, top_songs_monthly,
+            consecutive_repeats
         } = results;
 
         const allSongs = Object.entries(top_songs).sort((a, b) => b[1] - a[1]);
@@ -78,6 +79,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         renderList(allSongsList, allSongs, songSearchInput.value);
         renderList(allArtistsList, allArtists, artistSearchInput.value);
+        renderList(document.getElementById('top-repeats-list'), consecutive_repeats, '');
         renderPeriodicTable(weeklyTopSongsDiv, top_songs_weekly);
         renderPeriodicTable(monthlyTopSongsDiv, top_songs_monthly);
     }

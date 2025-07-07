@@ -1,11 +1,11 @@
 import json
 import pandas as pd
+import itertools
+from urllib.parse import urlparse, parse_qs
 
-# This will hold our master DataFrame after the initial analysis
 master_df = None
 
 def merge_histories(histories):
-    """Merges multiple YouTube Music history lists into a single list."""
     merged_history = []
     for history in histories:
         if isinstance(history, list):
@@ -13,10 +13,6 @@ def merge_histories(histories):
     return merged_history
 
 def clean_data(item):
-    """
-    Safely extracts and cleans title and artist from a history item.
-    Returns (None, None) if the item is not a valid song entry.
-    """
     try:
         if (not item or 
             'header' not in item or item['header'] != 'YouTube Music' or
@@ -24,22 +20,22 @@ def clean_data(item):
             'titleUrl' not in item or 'watch?v=' not in item['titleUrl'] or
             'subtitles' not in item or not isinstance(item.get('subtitles'), list) or len(item['subtitles']) == 0 or
             'name' not in item['subtitles'][0] or 'url' not in item['subtitles'][0]):
-            return None, None
+            return None, None, None
 
         title = item['title'][8:]
         artist = item['subtitles'][0]['name'].replace(' - Topic', '')
-
-        if title == artist:
-            return None, None
         
-        return title, artist
+        parsed_url = urlparse(item['titleUrl'])
+        video_id = parse_qs(parsed_url.query).get('v', [None])[0]
+
+        if not video_id or title == artist:
+            return None, None, None
+        
+        return title, artist, video_id
     except (TypeError, AttributeError, KeyError):
-        return None, None
+        return None, None, None
 
 def perform_initial_analysis(history_data_proxy):
-    """
-    Performs the main, one-time analysis and stores the master DataFrame.
-    """
     global master_df
     try:
         history_data = history_data_proxy.to_py()
@@ -48,11 +44,12 @@ def perform_initial_analysis(history_data_proxy):
         processed_data = []
         for item in merged_history:
             if isinstance(item, dict) and 'time' in item:
-                title, artist = clean_data(item)
-                if title and artist:
+                title, artist, video_id = clean_data(item)
+                if title and artist and video_id:
                     processed_data.append({
                         'title': title,
                         'artist': artist,
+                        'video_id': video_id,
                         'time': item['time']
                     })
 
@@ -63,26 +60,21 @@ def perform_initial_analysis(history_data_proxy):
         df['time'] = pd.to_datetime(df['time'], utc=True, errors='coerce')
         df.dropna(subset=['time'], inplace=True)
         df.sort_values(by='time', inplace=True)
-        df.drop_duplicates(subset=['time', 'title', 'artist'], keep='first', inplace=True)
+        df.drop_duplicates(subset=['time', 'video_id'], keep='first', inplace=True)
         
-        # Store the processed DataFrame globally
+        df['artist_title'] = df['artist'] + ' - ' + df['title']
+        
         master_df = df
         
         min_date = master_df['time'].min().isoformat()
         max_date = master_df['time'].max().isoformat()
 
-        return {
-            "min_date": min_date,
-            "max_date": max_date
-        }
+        return {"min_date": min_date, "max_date": max_date}
 
     except Exception as e:
         return {"error": f"An initial analysis error occurred: {str(e)}"}
 
 def get_stats_for_period(start_date_str, end_date_str):
-    """
-    Calculates statistics for a given date range from the master DataFrame.
-    """
     global master_df
     if master_df is None:
         return {"error": "Initial analysis has not been performed."}
@@ -92,56 +84,71 @@ def get_stats_for_period(start_date_str, end_date_str):
         end_date = pd.to_datetime(end_date_str, utc=True) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
         
         mask = (master_df['time'] >= start_date) & (master_df['time'] <= end_date)
-        filtered_df = master_df.loc[mask]
+        filtered_df = master_df.loc[mask].copy()
 
         if filtered_df.empty:
             return {"error": "No listening history found for the selected date range."}
 
         total_videos = len(filtered_df)
-        top_songs = filtered_df['title'].value_counts()
-        top_artists = filtered_df['artist'].value_counts()
+        
+        # Create a mapping from video_id to artist_title for display
+        video_id_to_display_name = filtered_df.drop_duplicates(subset=['video_id'])[['video_id', 'artist_title']].set_index('video_id')
+        
+        top_songs_by_id = filtered_df['video_id'].value_counts()
+        top_songs = top_songs_by_id.rename(index=video_id_to_display_name['artist_title']).to_dict()
+
+        top_artists = filtered_df['artist'].value_counts().to_dict()
 
         songs_per_day = filtered_df.groupby(filtered_df['time'].dt.date).size()
         songs_per_hour = filtered_df.groupby(filtered_df['time'].dt.hour).size()
         songs_per_day_of_week = filtered_df.groupby(filtered_df['time'].dt.dayofweek).size()
-
-        filtered_df['artist_title'] = filtered_df['artist'] + ' - ' + filtered_df['title']
         
-        top_songs_weekly = filtered_df.groupby([pd.Grouper(key='time', freq='W-MON'), 'artist_title']).size()
-        top_songs_monthly = filtered_df.groupby([pd.Grouper(key='time', freq='MS'), 'artist_title']).size()
+        top_songs_weekly_by_id = filtered_df.groupby([pd.Grouper(key='time', freq='W-MON'), 'video_id']).size()
+        top_songs_monthly_by_id = filtered_df.groupby([pd.Grouper(key='time', freq='MS'), 'video_id']).size()
+
+        consecutive_repeats = []
+        if not filtered_df.empty:
+            grouped_history = [(key, len(list(group))) for key, group in itertools.groupby(filtered_df["video_id"])]
+            grouped_history.sort(key=lambda x: x[1], reverse=True)
+            for video_id, count in grouped_history[:5]:
+                if count > 1:
+                    display_name = video_id_to_display_name.loc[video_id, 'artist_title']
+                    consecutive_repeats.append([display_name, count])
 
         weekly_dict = {}
-        for (week, artist_title), count in top_songs_weekly.items():
+        for (week, video_id), count in top_songs_weekly_by_id.items():
             week_str = week.strftime('%Y-%m-%d')
             if week_str not in weekly_dict:
                 weekly_dict[week_str] = []
-            weekly_dict[week_str].append([artist_title, count])
+            display_name = video_id_to_display_name.loc[video_id, 'artist_title']
+            weekly_dict[week_str].append([display_name, count])
 
         monthly_dict = {}
-        for (month, artist_title), count in top_songs_monthly.items():
+        for (month, video_id), count in top_songs_monthly_by_id.items():
             month_str = month.strftime('%b %Y')
             if month_str not in monthly_dict:
                 monthly_dict[month_str] = []
-            monthly_dict[month_str].append([artist_title, count])
+            display_name = video_id_to_display_name.loc[video_id, 'artist_title']
+            monthly_dict[month_str].append([display_name, count])
 
         songs_per_day_serializable = {day.strftime('%Y-%m-%d'): count for day, count in songs_per_day.items()}
 
         return {
             "total_videos": total_videos,
-            "top_songs": top_songs.to_dict(),
-            "top_artists": top_artists.to_dict(),
+            "top_songs": top_songs,
+            "top_artists": top_artists,
             "songs_per_day": songs_per_day_serializable,
             "songs_per_hour": songs_per_hour.to_dict(),
             "songs_per_day_of_week": songs_per_day_of_week.to_dict(),
             "top_songs_weekly": weekly_dict,
             "top_songs_monthly": monthly_dict,
+            "consecutive_repeats": consecutive_repeats
         }
 
     except Exception as e:
         return {"error": f"An error occurred while filtering stats: {str(e)}"}
 
 import js
-# Make the new functions available to JavaScript
 js.perform_initial_analysis = perform_initial_analysis
 js.get_stats_for_period = get_stats_for_period
             
