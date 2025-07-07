@@ -220,6 +220,10 @@ button:hover {
     100% { transform: rotate(360deg); }
 }
 
+#analyzing-indicator .loading-spinner {
+    display: none;
+}
+
 .loading-dots {
     display: inline-block;
     margin-top: 1rem;
