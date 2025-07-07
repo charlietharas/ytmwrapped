@@ -1,0 +1,259 @@
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+header {
+    background-color: #ff0000;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+}
+
+main {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* This will contain the child elements */
+}
+
+.controls {
+    margin-bottom: 2rem;
+}
+
+.controls p {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+input[type="file"],
+input[type="date"] {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.date-inputs {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+#date-slider {
+    margin: 2rem 0.5rem;
+    margin-top: 3rem;
+}
+
+.charts-container {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.chart-wrapper {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    height: 400px; /* Set a fixed height for the chart container */
+}
+
+/* Add gap and center the Songs per Hour chart */
+#songs-per-hour-chart {
+    margin: 0 auto;
+    display: block;
+}
+
+.chart-wrapper:has(#songs-per-hour-chart) {
+    margin-top: 3rem;
+}
+
+.lists-container {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.list-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+.list-wrapper input {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.list-wrapper ol {
+    height: 400px;
+    overflow-y: auto;
+    padding-left: 2rem;
+    margin: 0;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+/* Styling for periodic top songs sections */
+.periodic-top-songs-container .list-wrapper {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: white;
+}
+
+.list-wrapper li {
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.list-wrapper li:last-child {
+    border-bottom: none;
+}
+
+.chrono-container, .periodic-top-songs-container {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.table-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+.table-wrapper h3 {
+    text-align: center;
+}
+
+.table-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-wrapper th, .table-wrapper td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.table-wrapper th {
+    background-color: #f2f2f2;
+}
+
+button {
+    background-color: #ff0000;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+button:hover {
+    background-color: #cc0000;
+}
+
+#results {
+    margin-top: 2rem;
+}
+
+#total-videos {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+#loading-indicator, #analyzing-indicator {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    color: #666;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #ff0000;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-dots {
+    display: inline-block;
+    margin-top: 1rem;
+}
+
+.loading-dots span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #ff0000;
+    margin: 0 4px;
+    animation: dots 1.4s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+.loading-dots span:nth-child(3) { animation-delay: 0s; }
+
+@keyframes dots {
+    0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.hidden {
+    display: none;
+}
+
+.chrono-container {
+    display: flex;
+    gap: 2rem;
+    margin-top: 3rem;
+    margin-bottom: 7rem;
+}
+.chrono-container .chart-wrapper {
+    padding-top: 0;
+    margin-top: 0 !important;
+    height: 400px;
+    flex: 1;
+    min-width: 0;
+    display: block;
+}
+.chrono-container .chart-wrapper canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+.chrono-container .chart-wrapper h3 {
+    font-size: 1.7rem;
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.2;
+    height: 2.5em;
+    display: block;
+}
