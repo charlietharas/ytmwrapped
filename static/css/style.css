@@ -97,9 +97,15 @@ input[type="date"] {
     height: 400px;
     overflow-y: auto;
     padding-left: 2rem;
+    padding-top: 0.5rem;
     margin: 0;
     border: 1px solid #eee;
     border-radius: 4px;
+}
+
+.list-wrapper li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 /* Styling for periodic top songs sections */
@@ -110,9 +116,28 @@ input[type="date"] {
     background-color: white;
 }
 
-.list-wrapper li {
-    padding: 0.5rem;
-    border-bottom: 1px solid #eee;
+/* Remove the extra box styling from the content div */
+.periodic-top-songs-container .list-wrapper div[style*="border"] {
+    border: none !important;
+    padding: 0 !important;
+    background-color: transparent !important;
+}
+
+/* Ensure text doesn't get cut off */
+.periodic-top-songs-container .list-wrapper ol {
+    overflow-x: auto;
+    word-wrap: break-word;
+    word-break: break-word;
+    padding-left: 2.5rem !important;
+    padding-top: 0.5rem;
+}
+
+.periodic-top-songs-container .list-wrapper li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }
 
 .list-wrapper li:last-child {

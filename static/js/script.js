@@ -132,9 +132,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         dropdown.style.overflowY = 'auto';
         
         const contentDiv = document.createElement('div');
-        contentDiv.style.border = '1px solid #ddd';
-        contentDiv.style.borderRadius = '8px';
-        contentDiv.style.padding = '1rem';
         contentDiv.style.minHeight = '200px';
         
         let currentIndex = 0;
@@ -147,8 +144,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
             
             contentDiv.innerHTML = `
                 <h4 style="margin-top: 0; margin-bottom: 1rem; color: #666;">${currentPeriod}</h4>
-                <ol style="margin: 0; padding-left: 1.5rem;">
-                    ${songs.map(song => `<li style="padding: 6px 0; border-bottom: 1px solid #f0f0f0;">${song[0]} (${song[1]} plays)</li>`).join('')}
+                <ol style="margin: 0; padding-left: 2rem;">
+                    ${songs.map(song => `<li>${song[0]} (${song[1]} plays)</li>`).join('')}
                 </ol>
             `;
             
