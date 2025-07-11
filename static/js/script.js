@@ -27,11 +27,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const historyListWrapper = document.getElementById('history-list-wrapper');
     const historyList = document.getElementById('history-list');
     const historySearchInput = document.getElementById('history-search');
+    const returnToExplorerBtn = document.getElementById('return-to-explorer');
     const startOverContainer = document.getElementById('start-over-container');
 
     const startOverBtn = document.createElement('button');
     startOverBtn.textContent = 'Start Over';
-    startOverBtn.className = 'start-over-btn'; // Add a class for styling if needed
+    startOverBtn.className = 'start-over-btn';
 
     // === State ===
     let pyodide;
@@ -40,13 +41,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // History Explorer State
     let historyCurrentPage = 1;
-    let historyTotalItems = 0;
     let historyHasMore = true;
     let historyIsLoading = false;
     let historySearchTerm = '';
     let historyDebounceTimer;
+    let historyFilter = { type: null, value: null };
     const HISTORY_PAGE_SIZE = 75;
-    const MAX_HISTORY_ITEMS = 450; // 6 pages
+    const MAX_HISTORY_ITEMS = 450;
 
     // === Utility Functions ===
     const dateToTimestamp = (date) => date && !isNaN(date.getTime()) ? date.getTime() : NaN;
@@ -92,7 +93,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         renderPeriodicTable(weeklyTopSongsDiv, top_songs_weekly);
         renderPeriodicTable(monthlyTopSongsDiv, top_songs_monthly);
         
-        // Initial load for history explorer
         resetAndLoadHistory();
     }
 
@@ -174,8 +174,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (!isAnalysisComplete || historyIsLoading || !historyHasMore) return;
         historyIsLoading = true;
 
-        const resultsProxy = pyodide.globals.get('get_history_for_period')(
-            startDateInput.value, endDateInput.value, page, HISTORY_PAGE_SIZE, historySearchTerm
+        const resultsProxy = pyodide.globals.get('get_filtered_history')(
+            startDateInput.value, endDateInput.value, page, HISTORY_PAGE_SIZE, 
+            historySearchTerm, historyFilter.type, historyFilter.value
         );
         const results = resultsProxy.toJs({ dict_converter: Object.fromEntries });
         resultsProxy.destroy();
@@ -188,13 +189,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
 
         const { history, total_items } = results;
-        historyTotalItems = total_items;
 
         if (page === 1) {
             historyList.innerHTML = '';
         }
 
-        // Unload old items if the list gets too long
         while (historyList.children.length > MAX_HISTORY_ITEMS) {
             historyList.removeChild(historyList.firstChild);
         }
@@ -202,7 +201,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (history.length === 0) {
             historyHasMore = false;
             if (page === 1) {
-                historyList.innerHTML = '<li>No history found for this period or search term.</li>';
+                historyList.innerHTML = '<li>No history found for this period or filter.</li>';
             }
         } else {
             const fragment = document.createDocumentFragment();
@@ -227,19 +226,40 @@ document.addEventListener('DOMContentLoaded', (event) => {
         fetchHistoryPage(1);
     }
 
+    function applyHistoryFilter(type, value) {
+        historyFilter = { type, value };
+        historySearchInput.value = '';
+        historySearchTerm = '';
+        returnToExplorerBtn.classList.remove('hidden');
+        historySearchInput.classList.add('hidden');
+        resetAndLoadHistory();
+    }
+
+    function clearHistoryFilter() {
+        historyFilter = { type: null, value: null };
+        returnToExplorerBtn.classList.add('hidden');
+        historySearchInput.classList.remove('hidden');
+        resetAndLoadHistory();
+    }
+
     // === Pyodide and Analysis Logic ===
     async function initializePyodide() {
         loadingIndicator.classList.remove('hidden');
         historyExplorerContainer.classList.add('hidden');
-        pyodide = await loadPyodide();
-        await pyodide.loadPackage("micropip");
-        const micropip = pyodide.pyimport("micropip");
-        await micropip.install('pandas');
-        const response = await fetch('ytmwrapped.py');
-        const ytmwrappedCode = await response.text();
-        pyodide.runPython(ytmwrappedCode);
-        loadingIndicator.classList.add('hidden');
-        fileInputContainer.classList.remove('hidden');
+        try {
+            pyodide = await loadPyodide();
+            await pyodide.loadPackage("micropip");
+            const micropip = pyodide.pyimport("micropip");
+            await micropip.install('pandas');
+            const response = await fetch('ytmwrapped.py');
+            const ytmwrappedCode = await response.text();
+            pyodide.runPython(ytmwrappedCode);
+            loadingIndicator.classList.add('hidden');
+            fileInputContainer.classList.remove('hidden');
+        } catch (error) {
+            console.error("Pyodide initialization failed:", error);
+            loadingIndicator.innerHTML = "<p>Failed to load Python environment. Please refresh the page.</p>";
+        }
     }
 
     async function handleFileSelectionAndAnalyze() {
@@ -314,13 +334,35 @@ document.addEventListener('DOMContentLoaded', (event) => {
         fileInputContainer.classList.remove('hidden');
         historyList.innerHTML = '';
         historySearchInput.value = '';
+        clearHistoryFilter();
     }
 
     // === Chart Initialization ===
     function createCharts() {
+        const chartClickHandler = (event, elements, chart, filterType) => {
+            if (elements.length > 0) {
+                const elementIndex = elements[0].index;
+                const label = chart.data.labels[elementIndex];
+                applyHistoryFilter(filterType, label);
+            }
+        };
+
         const commonOptions = { plugins: { legend: { display: false } }, maintainAspectRatio: false };
-        topSongsChart = new Chart(topSongsChartCanvas, { type: 'bar', options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } } }, data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(255, 99, 132, 0.2)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }] } });
-        topArtistsChart = new Chart(topArtistsChartCanvas, { type: 'bar', options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } } }, data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(54, 162, 235, 0.2)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] } });
+        
+        topSongsChart = new Chart(topSongsChartCanvas, { 
+            type: 'bar', 
+            options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } }, 
+            onClick: (e, el) => chartClickHandler(e, el, topSongsChart, 'song') }, 
+            data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(255, 99, 132, 0.2)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }] } 
+        });
+
+        topArtistsChart = new Chart(topArtistsChartCanvas, { 
+            type: 'bar', 
+            options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } },
+            onClick: (e, el) => chartClickHandler(e, el, topArtistsChart, 'artist') }, 
+            data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(54, 162, 235, 0.2)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] } 
+        });
+        
         songsPerDayChart = new Chart(songsPerDayChartCanvas, { type: 'bar', options: { ...commonOptions, scales: { y: { beginAtZero: true } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [], backgroundColor: 'rgba(75, 192, 192, 0.2)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 }] } });
         songsPerHourChart = new Chart(songsPerHourChartCanvas, { type: 'polarArea', options: { ...commonOptions, scales: { r: { display: true, angleLines: { display: true }, pointLabels: { display: true, centerPointLabels: false, font: { size: 14 } }, ticks: { display: false } } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [] }] } });
         songsPerDayOfWeekChart = new Chart(songsPerDayOfWeekChartCanvas, { type: 'bar', options: { ...commonOptions, scales: { y: { beginAtZero: true }, x: { ticks: { font: { size: 14 } } } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [], backgroundColor: 'rgba(255, 159, 64, 0.2)', borderColor: 'rgba(255, 159, 64, 1)', borderWidth: 1 }] } });
@@ -330,11 +372,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
     function setup() {
         historyFilesInput.addEventListener('change', handleFileSelectionAndAnalyze);
         startOverBtn.addEventListener('click', resetApp);
+        returnToExplorerBtn.addEventListener('click', clearHistoryFilter);
 
-        songSearchInput.addEventListener('input', () => renderList(allSongsList, Object.entries(currentTopSongs || {}), songSearchInput.value));
-        artistSearchInput.addEventListener('input', () => renderList(allArtistsList, Object.entries(currentTopArtists || {}), artistSearchInput.value));
-
-        // History Explorer Listeners
         historySearchInput.addEventListener('input', (e) => {
             clearTimeout(historyDebounceTimer);
             historyDebounceTimer = setTimeout(() => {
@@ -345,12 +384,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         historyListWrapper.addEventListener('scroll', () => {
             const { scrollTop, scrollHeight, clientHeight } = historyListWrapper;
-            if (scrollHeight - scrollTop - clientHeight < 200) { // Fetch when 200px from bottom
+            if (scrollHeight - scrollTop - clientHeight < 200) {
                 fetchHistoryPage(historyCurrentPage);
             }
         });
 
-        // Date Slider Setup
         noUiSlider.create(dateSlider, {
             range: { min: 0, max: 1 },
             start: [0, 1],

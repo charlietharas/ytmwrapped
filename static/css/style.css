@@ -50,15 +50,24 @@ header {
 
 .history-controls {
     margin-bottom: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
 }
 
 #history-search {
-    width: 100%;
+    flex-grow: 1;
+    width: auto;
     padding: 0.75rem;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
     font-size: 1rem;
+}
+
+#return-to-explorer {
+    padding: 0.75rem 1rem;
+    flex-shrink: 0;
 }
 
 #history-list-wrapper {
@@ -146,12 +155,18 @@ input[type="date"] {
 .chart-wrapper, .list-wrapper {
     flex: 1;
     min-width: 0;
+    width: 100%; /* Ensure wrappers take full width */
 }
 
 .chart-wrapper {
     position: relative;
     height: 400px;
 }
+
+.chart-wrapper canvas {
+    cursor: pointer;
+}
+
 
 .list-wrapper input {
     width: 100%;
