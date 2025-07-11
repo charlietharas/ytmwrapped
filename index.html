@@ -14,95 +14,113 @@
     <header>
         <h1>YouTube Music Wrapped</h1>
     </header>
-    <main>
-        <div id="loading-indicator">
-            <div class="loading-spinner"></div>
-            <p>Loading Python environment and packages...</p>
-            <p>This may take a moment.</p>
-        </div>
 
-        <div id="file-input-container" class="hidden">
-            <p>Select your YouTube Music history file(s) (watch-history.json):</p>
-            <input type="file" id="history-files" multiple>
-        </div>
-
-        <div id="analyzing-indicator" class="hidden">
-            <div class="loading-spinner"></div>
-            <p>Analyzing your history...</p>
-            <p>This may take a few moments for large history files.</p>
-            <div class="loading-dots">
-                <span></span>
-                <span></span>
-                <span></span>
+    <div id="app-container">
+        <div id="history-explorer-container">
+            <div id="history-explorer">
+                <h2>History Explorer</h2>
+                <div class="history-controls">
+                    <input type="text" id="history-search" placeholder="Search your history...">
+                </div>
+                <div id="history-list-wrapper">
+                    <ul id="history-list"></ul>
+                </div>
             </div>
         </div>
 
-        <div class="controls hidden">
-            <p>Select the time period to analyze:</p>
-            <div id="date-slider"></div>
-            <div class="date-inputs">
-                <input type="date" id="start-date">
-                <input type="date" id="end-date">
+        <main id="main-content">
+            <div id="loading-indicator">
+                <div class="loading-spinner"></div>
+                <p>Loading Python environment and packages...</p>
+                <p>This may take a moment.</p>
             </div>
-        </div>
 
-        <div id="results" class="hidden">
-            <h2>Analysis Results</h2>
-            <div id="total-videos"></div>
-            <div class="charts-container">
+            <div id="file-input-container" class="hidden">
+                <p>Select your YouTube Music history file(s) (watch-history.json):</p>
+                <input type="file" id="history-files" multiple>
+            </div>
+
+            <div id="analyzing-indicator" class="hidden">
+                <div class="loading-spinner"></div>
+                <p>Analyzing your history...</p>
+                <p>This may take a few moments for large history files.</p>
+                <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+
+            <div class="controls hidden">
+                <div class="controls-header">
+                    <p>Select the time period to analyze:</p>
+                </div>
+                <div id="date-slider"></div>
+                <div class="date-inputs">
+                    <input type="date" id="start-date">
+                    <input type="date" id="end-date">
+                </div>
+            </div>
+
+            <div id="results" class="hidden">
+                <h2>Analysis Results</h2>
+                <div id="total-videos"></div>
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <h3>Top 20 Most Viewed Songs</h3>
+                        <canvas id="top-songs-chart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Top 20 Most Listened To Artists</h3>
+                        <canvas id="top-artists-chart"></canvas>
+                    </div>
+                </div>
+                <div class="lists-container">
+                    <div class="list-wrapper">
+                        <h3>All Songs</h3>
+                        <input type="text" id="song-search" placeholder="Search songs...">
+                        <ol id="all-songs-list"></ol>
+                    </div>
+                    <div class="list-wrapper">
+                        <h3>All Artists</h3>
+                        <input type="text" id="artist-search" placeholder="Search artists...">
+                        <ol id="all-artists-list"></ol>
+                    </div>
+                </div>
+                <div class="lists-container">
+                    <div class="list-wrapper">
+                        <h3>Top 5 Most Repeated Songs</h3>
+                        <ol id="top-repeats-list"></ol>
+                    </div>
+                </div>
                 <div class="chart-wrapper">
-                    <h3>Top 20 Most Viewed Songs</h3>
-                    <canvas id="top-songs-chart"></canvas>
+                    <h3>Songs per Day</h3>
+                    <canvas id="songs-per-day-chart"></canvas>
                 </div>
-                <div class="chart-wrapper">
-                    <h3>Top 20 Most Listened To Artists</h3>
-                    <canvas id="top-artists-chart"></canvas>
+                <div class="chrono-container">
+                    <div class="chart-wrapper">
+                        <h3>Songs per Hour</h3>
+                        <canvas id="songs-per-hour-chart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Songs per Day of Week</h3>
+                        <canvas id="songs-per-day-of-week-chart"></canvas>
+                    </div>
                 </div>
-            </div>
-            <div class="lists-container">
-                <div class="list-wrapper">
-                    <h3>All Songs</h3>
-                    <input type="text" id="song-search" placeholder="Search songs...">
-                    <ol id="all-songs-list"></ol>
-                </div>
-                <div class="list-wrapper">
-                    <h3>All Artists</h3>
-                    <input type="text" id="artist-search" placeholder="Search artists...">
-                    <ol id="all-artists-list"></ol>
-                </div>
-            </div>
-            <div class="lists-container">
-                <div class="list-wrapper">
-                    <h3>Top 5 Most Repeated Songs</h3>
-                    <ol id="top-repeats-list"></ol>
+                <div class="periodic-top-songs-container">
+                    <div class="list-wrapper">
+                        <h3>Top Songs per Week</h3>
+                        <div id="weekly-top-songs"></div>
+                    </div>
+                    <div class="list-wrapper">
+                        <h3>Top Songs per Month</h3>
+                        <div id="monthly-top-songs"></div>
+                    </div>
                 </div>
             </div>
-            <div class="chart-wrapper">
-                <h3>Songs per Day</h3>
-                <canvas id="songs-per-day-chart"></canvas>
-            </div>
-            <div class="chrono-container">
-                <div class="chart-wrapper">
-                    <h3>Songs per Hour</h3>
-                    <canvas id="songs-per-hour-chart"></canvas>
-                </div>
-                <div class="chart-wrapper">
-                    <h3>Songs per Day of Week</h3>
-                    <canvas id="songs-per-day-of-week-chart"></canvas>
-                </div>
-            </div>
-            <div class="periodic-top-songs-container">
-                <div class="list-wrapper">
-                    <h3>Top Songs per Week</h3>
-                    <div id="weekly-top-songs"></div>
-                </div>
-                <div class="list-wrapper">
-                    <h3>Top Songs per Month</h3>
-                    <div id="monthly-top-songs"></div>
-                </div>
-            </div>
-        </div>
-    </main>
+        </main>
+    </div>
+
     <script src="static/js/script.js"></script>
 </body>
 </html>

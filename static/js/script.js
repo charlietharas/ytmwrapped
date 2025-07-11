@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', (event) => {
-    // DOM Elements
+    // === DOM Elements ===
     const historyFilesInput = document.getElementById('history-files');
     const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
@@ -22,28 +22,37 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const monthlyTopSongsDiv = document.getElementById('monthly-top-songs');
     const fileInputContainer = document.getElementById('file-input-container');
     
+    // History Explorer Elements
+    const historyExplorerContainer = document.getElementById('history-explorer-container');
+    const historyListWrapper = document.getElementById('history-list-wrapper');
+    const historyList = document.getElementById('history-list');
+    const historySearchInput = document.getElementById('history-search');
+    const startOverContainer = document.getElementById('start-over-container');
+
     const startOverBtn = document.createElement('button');
     startOverBtn.textContent = 'Start Over';
-    startOverBtn.style.display = 'none';
-    startOverBtn.style.marginTop = '1rem';
+    startOverBtn.className = 'start-over-btn'; // Add a class for styling if needed
 
-    // State
+    // === State ===
     let pyodide;
     let topSongsChart, topArtistsChart, songsPerDayChart, songsPerHourChart, songsPerDayOfWeekChart;
     let isAnalysisComplete = false;
 
-    // Utility Functions
-    function dateToTimestamp(date) {
-        if (!date || isNaN(date.getTime())) return NaN;
-        return date.getTime();
-    }
+    // History Explorer State
+    let historyCurrentPage = 1;
+    let historyTotalItems = 0;
+    let historyHasMore = true;
+    let historyIsLoading = false;
+    let historySearchTerm = '';
+    let historyDebounceTimer;
+    const HISTORY_PAGE_SIZE = 75;
+    const MAX_HISTORY_ITEMS = 450; // 6 pages
 
-    function timestampToDateString(ts) {
-        if (isNaN(ts)) return "";
-        return new Date(ts).toISOString().split('T')[0];
-    }
+    // === Utility Functions ===
+    const dateToTimestamp = (date) => date && !isNaN(date.getTime()) ? date.getTime() : NaN;
+    const timestampToDateString = (ts) => isNaN(ts) ? "" : new Date(ts).toISOString().split('T')[0];
 
-    // --- UI Update Functions ---
+    // === UI Update Functions ===
     function updateDashboard(results) {
         if (results.error) {
             alert(`Analysis Error: ${results.error}`);
@@ -60,7 +69,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const allSongs = Object.entries(top_songs).sort((a, b) => b[1] - a[1]);
         const allArtists = Object.entries(top_artists).sort((a, b) => b[1] - a[1]);
 
-        totalVideosDiv.textContent = `Total songs listened to: ${total_videos}`;
+        totalVideosDiv.textContent = `Total songs: ${total_videos}`;
 
         const top20Songs = allSongs.slice(0, 20);
         const top20Artists = allArtists.slice(0, 20);
@@ -82,34 +91,31 @@ document.addEventListener('DOMContentLoaded', (event) => {
         renderList(document.getElementById('top-repeats-list'), consecutive_repeats, '');
         renderPeriodicTable(weeklyTopSongsDiv, top_songs_weekly);
         renderPeriodicTable(monthlyTopSongsDiv, top_songs_monthly);
+        
+        // Initial load for history explorer
+        resetAndLoadHistory();
     }
 
     function updateChart(chart, labels, data) {
-        if (chart) {
-            chart.data.labels = labels;
-            chart.data.datasets.forEach((dataset) => {
-                dataset.data = data;
-            });
-
-            // Special handling for polar area chart colors
-            if (chart.config.type === 'polarArea') {
-                chart.data.datasets[0].backgroundColor = generateColorPalette(labels.length);
-            }
-
-            chart.update();
+        if (!chart) return;
+        chart.data.labels = labels;
+        chart.data.datasets.forEach((dataset) => { dataset.data = data; });
+        if (chart.config.type === 'polarArea') {
+            chart.data.datasets[0].backgroundColor = generateColorPalette(labels.length);
         }
+        chart.update();
     }
 
     function generateColorPalette(count) {
         const colors = [];
         for (let i = 0; i < count; i++) {
-            const hue = (i * 360) / count;
-            colors.push(`hsla(${hue}, 70%, 70%, 0.6)`);
+            colors.push(`hsla(${(i * 360) / count}, 70%, 70%, 0.6)`);
         }
         return colors;
     }
 
     function renderList(listElement, data, searchTerm) {
+        if (!listElement) return;
         listElement.innerHTML = '';
         const filteredData = data.filter(item => item[0].toLowerCase().includes(searchTerm.toLowerCase()));
         filteredData.forEach(([name, count]) => {
@@ -120,16 +126,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     function renderPeriodicTable(container, data) {
+        if (!container) return;
         container.innerHTML = '';
         const periods = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
         if (periods.length === 0) return;
 
         const navigationDiv = document.createElement('div');
-        navigationDiv.style.display = 'flex';
-        navigationDiv.style.alignItems = 'center';
-        navigationDiv.style.gap = '1rem';
-        navigationDiv.style.marginBottom = '1rem';
-
+        navigationDiv.style.cssText = 'display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;';
         const prevButton = document.createElement('button');
         prevButton.textContent = '←';
         const nextButton = document.createElement('button');
@@ -166,9 +169,68 @@ document.addEventListener('DOMContentLoaded', (event) => {
         updateContent();
     }
 
-    // --- Pyodide and Analysis Logic ---
+    // === History Explorer Functions ===
+    async function fetchHistoryPage(page) {
+        if (!isAnalysisComplete || historyIsLoading || !historyHasMore) return;
+        historyIsLoading = true;
+
+        const resultsProxy = pyodide.globals.get('get_history_for_period')(
+            startDateInput.value, endDateInput.value, page, HISTORY_PAGE_SIZE, historySearchTerm
+        );
+        const results = resultsProxy.toJs({ dict_converter: Object.fromEntries });
+        resultsProxy.destroy();
+
+        if (results.error) {
+            console.error("History fetch error:", results.error);
+            historyHasMore = false;
+            historyIsLoading = false;
+            return;
+        }
+
+        const { history, total_items } = results;
+        historyTotalItems = total_items;
+
+        if (page === 1) {
+            historyList.innerHTML = '';
+        }
+
+        // Unload old items if the list gets too long
+        while (historyList.children.length > MAX_HISTORY_ITEMS) {
+            historyList.removeChild(historyList.firstChild);
+        }
+
+        if (history.length === 0) {
+            historyHasMore = false;
+            if (page === 1) {
+                historyList.innerHTML = '<li>No history found for this period or search term.</li>';
+            }
+        } else {
+            const fragment = document.createDocumentFragment();
+            history.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${item.artist_title}</strong><small>${item.time}</small>`;
+                fragment.appendChild(li);
+            });
+            historyList.appendChild(fragment);
+            historyCurrentPage++;
+            historyHasMore = historyList.children.length < total_items;
+        }
+        historyIsLoading = false;
+    }
+
+    function resetAndLoadHistory() {
+        historyList.innerHTML = '';
+        historyCurrentPage = 1;
+        historyHasMore = true;
+        historyIsLoading = false;
+        historyListWrapper.scrollTop = 0;
+        fetchHistoryPage(1);
+    }
+
+    // === Pyodide and Analysis Logic ===
     async function initializePyodide() {
         loadingIndicator.classList.remove('hidden');
+        historyExplorerContainer.classList.add('hidden');
         pyodide = await loadPyodide();
         await pyodide.loadPackage("micropip");
         const micropip = pyodide.pyimport("micropip");
@@ -188,19 +250,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
         for (const file of files) {
             try {
                 const content = await file.text();
-                const history = JSON.parse(content);
-                if (Array.isArray(history)) fullHistoryData.push(history);
-                else console.warn(`File ${file.name} is not a valid JSON array and will be skipped.`);
+                fullHistoryData.push(JSON.parse(content));
             } catch (e) {
                 alert(`Error reading or parsing ${file.name}: ${e.message}`);
-                historyFilesInput.value = '';
                 return;
             }
-        }
-
-        if (fullHistoryData.length === 0) {
-            alert("No valid history files selected.");
-            return;
         }
 
         fileInputContainer.classList.add('hidden');
@@ -220,12 +274,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
 
         const { min_date, max_date } = initialResults;
-        if (!min_date || !max_date) {
-             alert("Could not determine a valid date range from the history files.");
-             resetApp();
-             return;
-        }
-
         const minTimestamp = dateToTimestamp(new Date(min_date));
         const maxTimestamp = dateToTimestamp(new Date(max_date));
 
@@ -244,15 +292,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
         await updateStatsForPeriod();
         resultsDiv.classList.remove('hidden');
         controlsDiv.classList.remove('hidden');
-        startOverBtn.style.display = 'block';
+        historyExplorerContainer.classList.remove('hidden');
+        startOverContainer.appendChild(startOverBtn);
     }
 
     async function updateStatsForPeriod() {
         if (!isAnalysisComplete) return;
-        const startDate = startDateInput.value;
-        const endDate = endDateInput.value;
-
-        const resultsProxy = pyodide.globals.get('get_stats_for_period')(startDate, endDate);
+        const resultsProxy = pyodide.globals.get('get_stats_for_period')(startDateInput.value, endDateInput.value);
         const results = resultsProxy.toJs({ dict_converter: Object.fromEntries });
         resultsProxy.destroy();
         updateDashboard(results);
@@ -263,32 +309,50 @@ document.addEventListener('DOMContentLoaded', (event) => {
         historyFilesInput.value = '';
         resultsDiv.classList.add('hidden');
         controlsDiv.classList.add('hidden');
-        startOverBtn.style.display = 'none';
+        historyExplorerContainer.classList.add('hidden');
+        startOverBtn.remove();
         fileInputContainer.classList.remove('hidden');
+        historyList.innerHTML = '';
+        historySearchInput.value = '';
     }
 
-    // --- Chart Initialization ---
+    // === Chart Initialization ===
     function createCharts() {
-        topSongsChart = new Chart(topSongsChartCanvas, { type: 'bar', options: { indexAxis: 'y', scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } }, maintainAspectRatio: false }, data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(255, 99, 132, 0.2)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }] } });
-        topArtistsChart = new Chart(topArtistsChartCanvas, { type: 'bar', options: { indexAxis: 'y', scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } }, maintainAspectRatio: false }, data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(54, 162, 235, 0.2)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] } });
-        songsPerDayChart = new Chart(songsPerDayChartCanvas, { type: 'bar', options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [], backgroundColor: 'rgba(75, 192, 192, 0.2)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 }] } });
-        songsPerHourChart = new Chart(songsPerHourChartCanvas, { type: 'polarArea', options: { plugins: { legend: { display: false } }, scales: { r: { display: true, angleLines: { display: true }, pointLabels: { display: true, centerPointLabels: false, font: { size: 14 } }, ticks: { display: false } } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [] }] } });
-        songsPerDayOfWeekChart = new Chart(songsPerDayOfWeekChartCanvas, { type: 'bar', options: { scales: { y: { beginAtZero: true }, x: { ticks: { font: { size: 14 } } } }, plugins: { legend: { display: false } }, maintainAspectRatio: false }, data: { labels: [], datasets: [{ label: 'Songs', data: [], backgroundColor: 'rgba(255, 159, 64, 0.2)', borderColor: 'rgba(255, 159, 64, 1)', borderWidth: 1 }] } });
+        const commonOptions = { plugins: { legend: { display: false } }, maintainAspectRatio: false };
+        topSongsChart = new Chart(topSongsChartCanvas, { type: 'bar', options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } } }, data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(255, 99, 132, 0.2)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }] } });
+        topArtistsChart = new Chart(topArtistsChartCanvas, { type: 'bar', options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } } }, data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(54, 162, 235, 0.2)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] } });
+        songsPerDayChart = new Chart(songsPerDayChartCanvas, { type: 'bar', options: { ...commonOptions, scales: { y: { beginAtZero: true } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [], backgroundColor: 'rgba(75, 192, 192, 0.2)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 }] } });
+        songsPerHourChart = new Chart(songsPerHourChartCanvas, { type: 'polarArea', options: { ...commonOptions, scales: { r: { display: true, angleLines: { display: true }, pointLabels: { display: true, centerPointLabels: false, font: { size: 14 } }, ticks: { display: false } } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [] }] } });
+        songsPerDayOfWeekChart = new Chart(songsPerDayOfWeekChartCanvas, { type: 'bar', options: { ...commonOptions, scales: { y: { beginAtZero: true }, x: { ticks: { font: { size: 14 } } } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [], backgroundColor: 'rgba(255, 159, 64, 0.2)', borderColor: 'rgba(255, 159, 64, 1)', borderWidth: 1 }] } });
     }
 
-    // --- Event Listeners & Initial Setup ---
+    // === Event Listeners & Initial Setup ===
     function setup() {
-        const mainElement = document.querySelector('main');
-        mainElement.insertBefore(startOverBtn, resultsDiv);
-
         historyFilesInput.addEventListener('change', handleFileSelectionAndAnalyze);
         startOverBtn.addEventListener('click', resetApp);
 
-        songSearchInput.addEventListener('input', () => renderList(allSongsList, allSongs, songSearchInput.value));
-        artistSearchInput.addEventListener('input', () => renderList(allArtistsList, allArtists, artistSearchInput.value));
+        songSearchInput.addEventListener('input', () => renderList(allSongsList, Object.entries(currentTopSongs || {}), songSearchInput.value));
+        artistSearchInput.addEventListener('input', () => renderList(allArtistsList, Object.entries(currentTopArtists || {}), artistSearchInput.value));
 
+        // History Explorer Listeners
+        historySearchInput.addEventListener('input', (e) => {
+            clearTimeout(historyDebounceTimer);
+            historyDebounceTimer = setTimeout(() => {
+                historySearchTerm = e.target.value;
+                resetAndLoadHistory();
+            }, 300);
+        });
+
+        historyListWrapper.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = historyListWrapper;
+            if (scrollHeight - scrollTop - clientHeight < 200) { // Fetch when 200px from bottom
+                fetchHistoryPage(historyCurrentPage);
+            }
+        });
+
+        // Date Slider Setup
         noUiSlider.create(dateSlider, {
-            range: { min: 0, max: 1 }, // Dummy range
+            range: { min: 0, max: 1 },
             start: [0, 1],
             connect: true,
             tooltips: [{ to: timestampToDateString }, { to: timestampToDateString }]
@@ -299,7 +363,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
             endDateInput.value = timestampToDateString(Number(values[1]));
         });
         
-        dateSlider.noUiSlider.on('set', updateStatsForPeriod);
+        dateSlider.noUiSlider.on('set', () => {
+            if (isAnalysisComplete) {
+                updateStatsForPeriod();
+            }
+        });
 
         startDateInput.addEventListener('change', () => dateSlider.noUiSlider.set([dateToTimestamp(new Date(startDateInput.value)), null]));
         endDateInput.addEventListener('change', () => dateSlider.noUiSlider.set([null, dateToTimestamp(new Date(endDateInput.value))]));
@@ -310,4 +378,3 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     setup();
 });
-

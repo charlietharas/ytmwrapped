@@ -148,7 +148,43 @@ def get_stats_for_period(start_date_str, end_date_str):
     except Exception as e:
         return {"error": f"An error occurred while filtering stats: {str(e)}"}
 
+def get_history_for_period(start_date_str, end_date_str, page=1, page_size=50, search_term=""):
+    global master_df
+    if master_df is None:
+        return {"error": "Initial analysis has not been performed."}
+
+    try:
+        start_date = pd.to_datetime(start_date_str, utc=True)
+        end_date = pd.to_datetime(end_date_str, utc=True) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+
+        mask = (master_df['time'] >= start_date) & (master_df['time'] <= end_date)
+        filtered_df = master_df.loc[mask].copy()
+
+        if search_term:
+            filtered_df = filtered_df[filtered_df['artist_title'].str.contains(search_term, case=False)]
+
+        total_items = len(filtered_df)
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size
+        paginated_df = filtered_df.iloc[start_index:end_index].copy()
+        
+        # Convert timestamp to string
+        paginated_df['time'] = paginated_df['time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+
+        history_list = paginated_df[['artist_title', 'time']].to_dict(orient='records')
+
+        return {
+            "history": history_list,
+            "total_items": total_items,
+            "page": page,
+            "page_size": page_size
+        }
+
+    except Exception as e:
+        return {"error": f"An error occurred while fetching history: {str(e)}"}
+
 import js
 js.perform_initial_analysis = perform_initial_analysis
 js.get_stats_for_period = get_stats_for_period
+js.get_history_for_period = get_history_for_period
             
