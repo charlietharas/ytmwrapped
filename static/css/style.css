@@ -1,28 +1,41 @@
 html, body {
-    height: 100%;
     margin: 0;
     font-family: sans-serif;
     background-color: #f4f4f4;
     color: #333;
-    overflow: hidden; /* Prevent body from scrolling */
 }
 
 header {
     background-color: #ff0000;
     color: white;
-    padding: 1rem;
-    text-align: center;
+    padding: 0.5rem 1rem; /* Reduced vertical padding */
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center h1 */
+    height: 50px; /* Fixed height */
+    box-sizing: border-box;
+    width: 100%;
+    z-index: 1000;
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    z-index: 1000;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+#header-controls {
+    position: absolute;
+    right: 1rem;
 }
 
 #app-container {
     display: flex;
-    height: calc(100vh - 60px); /* Adjust based on header height */
-    margin-top: 60px; /* Adjust based on header height */
+    height: calc(100vh - 50px);
+    margin-top: 50px;
 }
 
 #history-explorer-container {
@@ -32,20 +45,70 @@ header {
     flex-direction: column;
     border-right: 1px solid #ddd;
     background-color: #fafafa;
+    overflow-y: auto;
 }
 
 #history-explorer {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex-grow: 1; /* Allow it to grow and fill the container */
     padding: 1.5rem;
     box-sizing: border-box;
+    min-height: 0; /* Prevent flexbox overflow issues */
 }
 
 #history-explorer h2 {
     margin-top: 0;
     margin-bottom: 1rem;
     font-size: 1.5rem;
+}
+
+#filter-management-container {
+    margin-bottom: 1rem;
+}
+
+#active-filter-container {
+    min-height: 20px; /* Reserve space */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.active-filter, .clear-all-filters-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e0e0e0;
+    border-radius: 15px;
+    padding: 5px 10px;
+    font-size: 0.9rem;
+    max-width: 100%;
+    border: none;
+    cursor: pointer;
+}
+
+.active-filter span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.active-filter button {
+    background: none;
+    border: none;
+    color: #333;
+    margin-left: 8px;
+    padding: 0;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.clear-all-filters-btn {
+    background-color: #c5c5c5;
+    color: #333;
+}
+.clear-all-filters-btn:hover {
+    background-color: #b0b0b0;
 }
 
 .history-controls {
@@ -63,11 +126,6 @@ header {
     border-radius: 4px;
     box-sizing: border-box;
     font-size: 1rem;
-}
-
-#return-to-explorer {
-    padding: 0.75rem 1rem;
-    flex-shrink: 0;
 }
 
 #history-list-wrapper {
@@ -107,55 +165,60 @@ header {
     flex-grow: 1;
     overflow-y: auto;
     overflow-x: hidden; /* Disable horizontal scrolling */
-    padding: 2rem;
-    padding-top: 3rem; /* Added more space at the top */
     background-color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+#results {
+    /* This is shown/hidden by JS by toggling the .hidden class */
 }
 
 .controls {
-    margin-bottom: 2rem;
-}
-
-.controls p {
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-}
-
-input[type="file"],
-input[type="date"] {
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.date-inputs {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
+    background: white;
+    padding: 2.5rem 2rem 1.5rem; /* Increased top padding */
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    border-bottom: 1px solid #ddd;
 }
 
 #date-slider {
-    margin: 2rem 0.5rem;
-    margin-top: 3rem;
+    margin: 0 0.5rem; /* Adjusted margin */
 }
 
-.charts-container, .lists-container, .chrono-container {
+/* Make slider tooltips editable */
+.noUi-tooltip {
+    cursor: pointer;
+}
+
+.charts-container, .lists-container, .chrono-container, .periodic-top-songs-container {
     display: flex;
     gap: 2rem;
     margin-top: 2rem;
+    padding: 0 2rem;
 }
 
-.periodic-top-songs-container {
-    display: flex;
-    gap: 2rem;
-    margin-top: 4rem; /* Increased space before this section */
+#results h2, #total-videos, #total-artists {
+    padding: 0 2rem;
+    margin-top: 2rem;
+}
+
+#total-videos, #total-artists {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+#total-artists {
+    margin-top: 0.5rem; /* Reduce top margin to be closer to total songs */
+    margin-bottom: 1rem; /* Ensure consistent bottom margin */
 }
 
 .chart-wrapper, .list-wrapper {
     flex: 1;
     min-width: 0;
     width: 100%; /* Ensure wrappers take full width */
+    margin-bottom: 2rem; /* Add space below each chart/list */
 }
 
 .chart-wrapper {
@@ -163,10 +226,15 @@ input[type="date"] {
     height: 400px;
 }
 
+/* Add padding and margin to standalone chart wrappers */
+#results > .chart-wrapper {
+    padding: 0 2rem;
+    margin-top: 2rem;
+}
+
 .chart-wrapper canvas {
     cursor: pointer;
 }
-
 
 .list-wrapper input {
     width: 100%;
@@ -196,8 +264,10 @@ input[type="date"] {
     border-bottom: none;
 }
 
-#top-repeats-list {
-    height: 200px !important;
+.list-wrapper li[data-filter-type]:hover,
+.periodic-top-songs-container li[data-song]:hover {
+    cursor: pointer;
+    text-decoration: underline;
 }
 
 button {
@@ -215,7 +285,7 @@ button:hover {
 }
 
 #results {
-    margin-top: 2rem;
+    padding-bottom: 2rem; /* Add padding to bottom */
 }
 
 #total-videos {
@@ -223,11 +293,60 @@ button:hover {
     margin-bottom: 1rem;
 }
 
-#loading-indicator, #analyzing-indicator {
+#loading-indicator, #analyzing-indicator, #file-input-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     text-align: center;
     padding: 2rem;
-    font-size: 1.2rem;
+    flex-grow: 1;
+    box-sizing: border-box;
+}
+
+.file-input-area {
+    border: 3px dashed #ccc;
+    border-radius: 10px;
+    padding: 3rem;
+    width: 80%;
+    max-width: 600px;
+    background-color: #fafafa;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.file-input-area:hover {
+    background-color: #f0f0f0;
+    border-color: #bbb;
+}
+
+.file-input-area .upload-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.file-input-area p {
+    margin: 0.5rem 0;
     color: #666;
+}
+
+.file-input-area strong {
+    color: #333;
+}
+
+.file-input-area .upload-subtitle {
+    font-size: 0.9rem;
+}
+
+.file-input-area input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
 }
 
 .loading-spinner {
@@ -275,12 +394,5 @@ button:hover {
 }
 
 .hidden {
-    display: none;
-}
-
-.controls-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+    display: none !important;
 }

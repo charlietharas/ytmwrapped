@@ -106,15 +106,6 @@ def get_stats_for_period(start_date_str, end_date_str):
         top_songs_weekly_by_id = filtered_df.groupby([pd.Grouper(key='time', freq='W-MON'), 'video_id']).size()
         top_songs_monthly_by_id = filtered_df.groupby([pd.Grouper(key='time', freq='MS'), 'video_id']).size()
 
-        consecutive_repeats = []
-        if not filtered_df.empty:
-            grouped_history = [(key, len(list(group))) for key, group in itertools.groupby(filtered_df["video_id"])]
-            grouped_history.sort(key=lambda x: x[1], reverse=True)
-            for video_id, count in grouped_history[:5]:
-                if count > 1:
-                    display_name = video_id_to_display_name.loc[video_id, 'artist_title']
-                    consecutive_repeats.append([display_name, count])
-
         weekly_dict = {}
         for (week, video_id), count in top_songs_weekly_by_id.items():
             week_str = week.strftime('%Y-%m-%d')
@@ -141,14 +132,13 @@ def get_stats_for_period(start_date_str, end_date_str):
             "songs_per_hour": songs_per_hour.to_dict(),
             "songs_per_day_of_week": songs_per_day_of_week.to_dict(),
             "top_songs_weekly": weekly_dict,
-            "top_songs_monthly": monthly_dict,
-            "consecutive_repeats": consecutive_repeats
+            "top_songs_monthly": monthly_dict
         }
 
     except Exception as e:
         return {"error": f"An error occurred while filtering stats: {str(e)}"}
 
-def get_filtered_history(start_date_str, end_date_str, page=1, page_size=50, search_term="", filter_type=None, filter_value=None):
+def get_filtered_history(start_date_str, end_date_str, page=1, page_size=50, search_term="", filters_json="[]"):
     global master_df
     if master_df is None:
         return {"error": "Initial analysis has not been performed."}
@@ -157,20 +147,52 @@ def get_filtered_history(start_date_str, end_date_str, page=1, page_size=50, sea
         start_date = pd.to_datetime(start_date_str, utc=True)
         end_date = pd.to_datetime(end_date_str, utc=True) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
 
-        # Base filtering by date
+        # Base filtering by date from main slider
         mask = (master_df['time'] >= start_date) & (master_df['time'] <= end_date)
-        filtered_df = master_df.loc[mask].copy()
+        temp_df = master_df.loc[mask].copy()
 
-        # Advanced filtering for songs or artists
-        if filter_type and filter_value:
-            if filter_type == 'artist':
-                filtered_df = filtered_df[filtered_df['artist'] == filter_value]
-            elif filter_type == 'song':
-                filtered_df = filtered_df[filtered_df['artist_title'] == filter_value]
+        # Advanced filtering based on user clicks
+        filters = json.loads(filters_json)
+        for f in filters:
+            filter_type = f.get('type')
+            filter_value = f.get('value')
+            if filter_type and filter_value is not None:
+                if filter_type == 'artist':
+                    temp_df = temp_df[temp_df['artist'] == filter_value]
+                elif filter_type == 'song':
+                    temp_df = temp_df[temp_df['artist_title'] == filter_value]
+                elif filter_type == 'day':
+                    filter_date = pd.to_datetime(filter_value).date()
+                    temp_df = temp_df[temp_df['time'].dt.date == filter_date]
+                elif filter_type == 'hour':
+                    hour_val = int(str(filter_value).split(':')[0])
+                    temp_df = temp_df[temp_df['time'].dt.hour == hour_val]
+                elif filter_type == 'dayofweek':
+                    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                    day_index = days.index(filter_value)
+                    temp_df = temp_df[temp_df['time'].dt.dayofweek == day_index]
+                elif filter_type == 'song_in_period':
+                    filter_data = json.loads(filter_value)
+                    song_title = filter_data['song']
+                    period_str = filter_data['period']
+                    period_type = filter_data['period_type']
+
+                    temp_df = temp_df[temp_df['artist_title'] == song_title]
+
+                    if period_type == 'week':
+                        start_period = pd.to_datetime(period_str, utc=True)
+                        end_period = start_period + pd.Timedelta(days=7)
+                        temp_df = temp_df[(temp_df['time'] >= start_period) & (temp_df['time'] < end_period)]
+                    elif period_type == 'month':
+                        start_period = pd.to_datetime(period_str, format='%b %Y', utc=True)
+                        end_period = start_period + pd.DateOffset(months=1)
+                        temp_df = temp_df[(temp_df['time'] >= start_period) & (temp_df['time'] < end_period)]
 
         # Text search
         if search_term:
-            filtered_df = filtered_df[filtered_df['artist_title'].str.contains(search_term, case=False)]
+            filtered_df = temp_df[temp_df['artist_title'].str.contains(search_term, case=False)]
+        else:
+            filtered_df = temp_df
 
         # Pagination
         total_items = len(filtered_df)

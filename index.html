@@ -13,15 +13,18 @@
 <body>
     <header>
         <h1>YouTube Music Wrapped</h1>
+        <div id="header-controls"></div>
     </header>
 
     <div id="app-container">
         <div id="history-explorer-container">
             <div id="history-explorer">
                 <h2>History Explorer</h2>
-                <div class="history-controls">
+                <div id="filter-management-container" class="hidden">
+                    <div id="active-filter-container"></div>
+                </div>
+                <div class="history-controls hidden">
                     <input type="text" id="history-search" placeholder="Search your history...">
-                    <button id="return-to-explorer" class="hidden">← Return to Explorer</button>
                 </div>
                 <div id="history-list-wrapper">
                     <ul id="history-list"></ul>
@@ -37,8 +40,12 @@
             </div>
 
             <div id="file-input-container" class="hidden">
-                <p>Select your YouTube Music history file(s) (watch-history.json):</p>
-                <input type="file" id="history-files" multiple>
+                <div class="file-input-area">
+                    <p class="upload-icon">📤</p>
+                    <p><strong>Select your YouTube Music history file(s)</strong></p>
+                    <p class="upload-subtitle">Click to browse or drag and drop your `watch-history.json` files here.</p>
+                    <input type="file" id="history-files" multiple title=" ">
+                </div>
             </div>
 
             <div id="analyzing-indicator" class="hidden">
@@ -52,20 +59,13 @@
                 </div>
             </div>
 
-            <div class="controls hidden">
-                <div class="controls-header">
-                    <p>Select the time period to analyze:</p>
-                </div>
-                <div id="date-slider"></div>
-                <div class="date-inputs">
-                    <input type="date" id="start-date">
-                    <input type="date" id="end-date">
-                </div>
-            </div>
-
             <div id="results" class="hidden">
+                <div class="controls">
+                    <div id="date-slider"></div>
+                </div>
                 <h2>Analysis Results</h2>
                 <div id="total-videos"></div>
+                <div id="total-artists"></div>
                 <div class="charts-container">
                     <div class="chart-wrapper">
                         <h3>Top 20 Most Viewed Songs</h3>
@@ -75,6 +75,10 @@
                         <h3>Top 20 Most Listened To Artists</h3>
                         <canvas id="top-artists-chart"></canvas>
                     </div>
+                </div>
+                <div class="chart-wrapper">
+                    <h3>Songs per Day</h3>
+                    <canvas id="songs-per-day-chart"></canvas>
                 </div>
                 <div class="lists-container">
                     <div class="list-wrapper">
@@ -87,16 +91,6 @@
                         <input type="text" id="artist-search" placeholder="Search artists...">
                         <ol id="all-artists-list"></ol>
                     </div>
-                </div>
-                <div class="lists-container">
-                    <div class="list-wrapper">
-                        <h3>Top 5 Most Repeated Songs</h3>
-                        <ol id="top-repeats-list"></ol>
-                    </div>
-                </div>
-                <div class="chart-wrapper">
-                    <h3>Songs per Day</h3>
-                    <canvas id="songs-per-day-chart"></canvas>
                 </div>
                 <div class="chrono-container">
                     <div class="chart-wrapper">

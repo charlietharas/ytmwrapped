@@ -1,13 +1,11 @@
 document.addEventListener('DOMContentLoaded', (event) => {
     // === DOM Elements ===
     const historyFilesInput = document.getElementById('history-files');
-    const startDateInput = document.getElementById('start-date');
-    const endDateInput = document.getElementById('end-date');
     const totalVideosDiv = document.getElementById('total-videos');
+    const totalArtistsDiv = document.getElementById('total-artists');
     const topSongsChartCanvas = document.getElementById('top-songs-chart');
     const topArtistsChartCanvas = document.getElementById('top-artists-chart');
     const loadingIndicator = document.getElementById('loading-indicator');
-    const controlsDiv = document.querySelector('.controls');
     const resultsDiv = document.getElementById('results');
     const analyzingIndicator = document.getElementById('analyzing-indicator');
     const dateSlider = document.getElementById('date-slider');
@@ -27,12 +25,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const historyListWrapper = document.getElementById('history-list-wrapper');
     const historyList = document.getElementById('history-list');
     const historySearchInput = document.getElementById('history-search');
-    const returnToExplorerBtn = document.getElementById('return-to-explorer');
-    const startOverContainer = document.getElementById('start-over-container');
-
-    const startOverBtn = document.createElement('button');
-    startOverBtn.textContent = 'Start Over';
-    startOverBtn.className = 'start-over-btn';
+    const historyControls = document.querySelector('.history-controls');
+    const activeFilterContainer = document.getElementById('active-filter-container');
+    const filterManagementContainer = document.getElementById('filter-management-container');
 
     // === State ===
     let pyodide;
@@ -45,7 +40,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     let historyIsLoading = false;
     let historySearchTerm = '';
     let historyDebounceTimer;
-    let historyFilter = { type: null, value: null };
+    let historyFilters = []; // Changed to an array for stacking
     const HISTORY_PAGE_SIZE = 75;
     const MAX_HISTORY_ITEMS = 450;
 
@@ -63,14 +58,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         const {
             total_videos, top_songs, top_artists, songs_per_day,
-            songs_per_hour, songs_per_day_of_week, top_songs_weekly, top_songs_monthly,
-            consecutive_repeats
+            songs_per_hour, songs_per_day_of_week, top_songs_weekly, top_songs_monthly
         } = results;
 
         const allSongs = Object.entries(top_songs).sort((a, b) => b[1] - a[1]);
         const allArtists = Object.entries(top_artists).sort((a, b) => b[1] - a[1]);
 
         totalVideosDiv.textContent = `Total songs: ${total_videos}`;
+        totalArtistsDiv.textContent = `Total artists: ${allArtists.length}`;
 
         const top20Songs = allSongs.slice(0, 20);
         const top20Artists = allArtists.slice(0, 20);
@@ -87,11 +82,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const dayOfWeekData = dayOfWeekLabels.map((_, index) => songs_per_day_of_week[index] || 0);
         updateChart(songsPerDayOfWeekChart, dayOfWeekLabels, dayOfWeekData);
 
-        renderList(allSongsList, allSongs, songSearchInput.value);
-        renderList(allArtistsList, allArtists, artistSearchInput.value);
-        renderList(document.getElementById('top-repeats-list'), consecutive_repeats, '');
-        renderPeriodicTable(weeklyTopSongsDiv, top_songs_weekly);
-        renderPeriodicTable(monthlyTopSongsDiv, top_songs_monthly);
+        renderList(allSongsList, allSongs, songSearchInput.value, 'song');
+        renderList(allArtistsList, allArtists, artistSearchInput.value, 'artist');
+        renderPeriodicTable(weeklyTopSongsDiv, top_songs_weekly, 'week');
+        renderPeriodicTable(monthlyTopSongsDiv, top_songs_monthly, 'month');
         
         resetAndLoadHistory();
     }
@@ -114,18 +108,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
         return colors;
     }
 
-    function renderList(listElement, data, searchTerm) {
+    function renderList(listElement, data, searchTerm, filterType) {
         if (!listElement) return;
         listElement.innerHTML = '';
         const filteredData = data.filter(item => item[0].toLowerCase().includes(searchTerm.toLowerCase()));
         filteredData.forEach(([name, count]) => {
             const li = document.createElement('li');
             li.textContent = `${name} - ${count} views`;
+            li.dataset.filterValue = name;
+            li.dataset.filterType = filterType;
             listElement.appendChild(li);
         });
     }
 
-    function renderPeriodicTable(container, data) {
+    function renderPeriodicTable(container, data, periodType) {
         if (!container) return;
         container.innerHTML = '';
         const periods = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
@@ -148,7 +144,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const currentPeriod = periods[currentIndex];
             const songs = [...data[currentPeriod]].sort((a, b) => b[1] - a[1]);
             dropdown.value = currentPeriod;
-            contentDiv.innerHTML = `<h4 style="margin-top: 0; margin-bottom: 1rem; color: #666;">${currentPeriod}</h4><ol style="margin: 0; padding-left: 2rem;">${songs.map(song => `<li>${song[0]} (${song[1]} plays)</li>`).join('')}</ol>`;
+            contentDiv.innerHTML = `<h4 style="margin-top: 0; margin-bottom: 1rem; color: #666;">${currentPeriod}</h4><ol style="margin: 0; padding-left: 2rem;">${songs.map(song => `<li data-song="${song[0]}" data-period="${currentPeriod}" data-period-type="${periodType}">${song[0]} (${song[1]} plays)</li>`).join('')}</ol>`;
             prevButton.disabled = currentIndex === 0;
             nextButton.disabled = currentIndex === periods.length - 1;
         }
@@ -174,9 +170,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (!isAnalysisComplete || historyIsLoading || !historyHasMore) return;
         historyIsLoading = true;
 
+        const [startTimestamp, endTimestamp] = dateSlider.noUiSlider.get(true);
+        const startDate = new Date(startTimestamp).toISOString();
+        const endDate = new Date(endTimestamp).toISOString();
+
+        const filtersJson = JSON.stringify(historyFilters);
         const resultsProxy = pyodide.globals.get('get_filtered_history')(
-            startDateInput.value, endDateInput.value, page, HISTORY_PAGE_SIZE, 
-            historySearchTerm, historyFilter.type, historyFilter.value
+            startDate, endDate, page, HISTORY_PAGE_SIZE, 
+            historySearchTerm, filtersJson
         );
         const results = resultsProxy.toJs({ dict_converter: Object.fromEntries });
         resultsProxy.destroy();
@@ -226,26 +227,64 @@ document.addEventListener('DOMContentLoaded', (event) => {
         fetchHistoryPage(1);
     }
 
-    function applyHistoryFilter(type, value) {
-        historyFilter = { type, value };
+    function renderActiveFilters() {
+        activeFilterContainer.innerHTML = '';
+        if (historyFilters.length > 0) {
+            filterManagementContainer.classList.remove('hidden');
+            historyFilters.forEach((filter, index) => {
+                let displayValue = filter.value;
+                if (filter.type === 'song_in_period') {
+                    const parsed = JSON.parse(filter.value);
+                    displayValue = `${parsed.song} (${parsed.period})`;
+                }
+                const filterTag = document.createElement('div');
+                filterTag.className = 'active-filter';
+                filterTag.innerHTML = `<span>${displayValue}</span><button data-index="${index}" title="Remove filter">&times;</button>`;
+                activeFilterContainer.appendChild(filterTag);
+            });
+            const clearBtn = document.createElement('button');
+            clearBtn.id = 'clear-all-filters-btn';
+            clearBtn.title = 'Clear all filters';
+            clearBtn.innerHTML = '&times;';
+            clearBtn.className = 'clear-all-filters-btn';
+            activeFilterContainer.appendChild(clearBtn);
+        } else {
+            filterManagementContainer.classList.add('hidden');
+        }
+    }
+
+    function addHistoryFilter(type, value) {
+        // Prevent adding duplicate filters
+        const exists = historyFilters.some(f => f.type === type && f.value === value);
+        if (exists) return;
+
+        historyFilters.push({ type, value });
         historySearchInput.value = '';
         historySearchTerm = '';
-        returnToExplorerBtn.classList.remove('hidden');
-        historySearchInput.classList.add('hidden');
+        
+        renderActiveFilters();
         resetAndLoadHistory();
     }
 
-    function clearHistoryFilter() {
-        historyFilter = { type: null, value: null };
-        returnToExplorerBtn.classList.add('hidden');
-        historySearchInput.classList.remove('hidden');
+    function removeHistoryFilter(index) {
+        historyFilters.splice(index, 1);
+        renderActiveFilters();
+        resetAndLoadHistory();
+    }
+
+    function clearAllHistoryFilters() {
+        historyFilters = [];
+        renderActiveFilters();
         resetAndLoadHistory();
     }
 
     // === Pyodide and Analysis Logic ===
     async function initializePyodide() {
         loadingIndicator.classList.remove('hidden');
+        fileInputContainer.classList.add('hidden');
+        analyzingIndicator.classList.add('hidden');
         historyExplorerContainer.classList.add('hidden');
+        resultsDiv.classList.add('hidden');
         try {
             pyodide = await loadPyodide();
             await pyodide.loadPackage("micropip");
@@ -311,14 +350,17 @@ document.addEventListener('DOMContentLoaded', (event) => {
         isAnalysisComplete = true;
         await updateStatsForPeriod();
         resultsDiv.classList.remove('hidden');
-        controlsDiv.classList.remove('hidden');
         historyExplorerContainer.classList.remove('hidden');
-        startOverContainer.appendChild(startOverBtn);
+        historyControls.classList.remove('hidden');
     }
 
     async function updateStatsForPeriod() {
         if (!isAnalysisComplete) return;
-        const resultsProxy = pyodide.globals.get('get_stats_for_period')(startDateInput.value, endDateInput.value);
+        const [startTimestamp, endTimestamp] = dateSlider.noUiSlider.get(true);
+        const startDate = new Date(startTimestamp).toISOString();
+        const endDate = new Date(endTimestamp).toISOString();
+
+        const resultsProxy = pyodide.globals.get('get_stats_for_period')(startDate, endDate);
         const results = resultsProxy.toJs({ dict_converter: Object.fromEntries });
         resultsProxy.destroy();
         updateDashboard(results);
@@ -328,38 +370,33 @@ document.addEventListener('DOMContentLoaded', (event) => {
         isAnalysisComplete = false;
         historyFilesInput.value = '';
         resultsDiv.classList.add('hidden');
-        controlsDiv.classList.add('hidden');
         historyExplorerContainer.classList.add('hidden');
-        startOverBtn.remove();
+        historyControls.classList.add('hidden');
+        filterManagementContainer.classList.add('hidden');
+        
+        loadingIndicator.classList.add('hidden');
+        analyzingIndicator.classList.add('hidden');
         fileInputContainer.classList.remove('hidden');
+
         historyList.innerHTML = '';
         historySearchInput.value = '';
-        clearHistoryFilter();
+        historyFilters = [];
+        renderActiveFilters();
     }
 
     // === Chart Initialization ===
     function createCharts() {
-        const chartClickHandler = (event, elements, chart, filterType) => {
-            if (elements.length > 0) {
-                const elementIndex = elements[0].index;
-                const label = chart.data.labels[elementIndex];
-                applyHistoryFilter(filterType, label);
-            }
-        };
-
         const commonOptions = { plugins: { legend: { display: false } }, maintainAspectRatio: false };
         
         topSongsChart = new Chart(topSongsChartCanvas, { 
             type: 'bar', 
-            options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } }, 
-            onClick: (e, el) => chartClickHandler(e, el, topSongsChart, 'song') }, 
+            options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } } }, 
             data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(255, 99, 132, 0.2)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }] } 
         });
 
         topArtistsChart = new Chart(topArtistsChartCanvas, { 
             type: 'bar', 
-            options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } },
-            onClick: (e, el) => chartClickHandler(e, el, topArtistsChart, 'artist') }, 
+            options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } } }, 
             data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(54, 162, 235, 0.2)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] } 
         });
         
@@ -368,11 +405,85 @@ document.addEventListener('DOMContentLoaded', (event) => {
         songsPerDayOfWeekChart = new Chart(songsPerDayOfWeekChartCanvas, { type: 'bar', options: { ...commonOptions, scales: { y: { beginAtZero: true }, x: { ticks: { font: { size: 14 } } } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [], backgroundColor: 'rgba(255, 159, 64, 0.2)', borderColor: 'rgba(255, 159, 64, 1)', borderWidth: 1 }] } });
     }
 
+    // === Interactivity Setup ===
+    function chartClickHandler(event, elements, chart, filterType) {
+        if (elements.length > 0) {
+            const elementIndex = elements[0].index;
+            const label = chart.data.labels[elementIndex];
+            addHistoryFilter(filterType, label);
+        }
+    }
+
+    function setupInteractivity() {
+        // Chart clicks
+        topSongsChart.options.onClick = (e, el) => chartClickHandler(e, el, topSongsChart, 'song');
+        topArtistsChart.options.onClick = (e, el) => chartClickHandler(e, el, topArtistsChart, 'artist');
+        songsPerDayChart.options.onClick = (e, el) => chartClickHandler(e, el, songsPerDayChart, 'day');
+        songsPerHourChart.options.onClick = (e, el) => chartClickHandler(e, el, songsPerHourChart, 'hour');
+        songsPerDayOfWeekChart.options.onClick = (e, el) => chartClickHandler(e, el, songsPerDayOfWeekChart, 'dayofweek');
+
+        // Delegated list clicks
+        document.getElementById('results').addEventListener('click', (e) => {
+            const target = e.target.closest('li');
+            if (!target) return;
+
+            const { filterType, filterValue, song, period, periodType } = target.dataset;
+
+            if (filterType && filterValue) {
+                addHistoryFilter(filterType, filterValue);
+            } else if (song && period && periodType) {
+                const value = JSON.stringify({ song, period, period_type: periodType });
+                addHistoryFilter('song_in_period', value);
+            }
+        });
+
+        // Clear filter buttons
+        activeFilterContainer.addEventListener('click', (e) => {
+            if (e.target.id === 'clear-all-filters-btn') {
+                clearAllHistoryFilters();
+            } else if (e.target.closest('.active-filter button')) {
+                const index = parseInt(e.target.dataset.index, 10);
+                removeHistoryFilter(index);
+            }
+        });
+
+        // Date slider tooltip editing
+        dateSlider.addEventListener('dblclick', (e) => {
+            if (e.target.classList.contains('noUi-tooltip')) {
+                const handleIndex = e.target.closest('.noUi-handle').dataset.handle;
+                const originalValue = timestampToDateString(dateSlider.noUiSlider.get(true)[handleIndex]);
+                
+                e.target.innerHTML = `<input type="date" value="${originalValue}" style="width: 100px; border: 1px solid #ccc; font-size: 12px;">`;
+                const input = e.target.querySelector('input');
+                input.focus();
+                input.select();
+
+                const saveChange = () => {
+                    const newTimestamp = dateToTimestamp(new Date(input.value));
+                    if (!isNaN(newTimestamp)) {
+                        const currentValues = dateSlider.noUiSlider.get(true);
+                        currentValues[handleIndex] = newTimestamp;
+                        dateSlider.noUiSlider.set(currentValues);
+                    }
+                    // The 'set' event will trigger the tooltip to re-render, so no need to manually remove the input
+                };
+
+                input.addEventListener('change', saveChange);
+                input.addEventListener('blur', saveChange);
+                input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') saveChange(); });
+            }
+        });
+    }
+
     // === Event Listeners & Initial Setup ===
     function setup() {
         historyFilesInput.addEventListener('change', handleFileSelectionAndAnalyze);
-        startOverBtn.addEventListener('click', resetApp);
-        returnToExplorerBtn.addEventListener('click', clearHistoryFilter);
+        
+        const startOverButtonInHeader = document.createElement('button');
+        startOverButtonInHeader.textContent = "Start Over";
+        document.getElementById('header-controls').appendChild(startOverButtonInHeader);
+        startOverButtonInHeader.addEventListener('click', resetApp);
+
 
         historySearchInput.addEventListener('input', (e) => {
             clearTimeout(historyDebounceTimer);
@@ -393,12 +504,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
             range: { min: 0, max: 1 },
             start: [0, 1],
             connect: true,
-            tooltips: [{ to: timestampToDateString }, { to: timestampToDateString }]
-        });
-
-        dateSlider.noUiSlider.on('update', (values) => {
-            startDateInput.value = timestampToDateString(Number(values[0]));
-            endDateInput.value = timestampToDateString(Number(values[1]));
+            tooltips: [
+                { to: (value) => timestampToDateString(value) },
+                { to: (value) => timestampToDateString(value) }
+            ]
         });
         
         dateSlider.noUiSlider.on('set', () => {
@@ -407,10 +516,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
             }
         });
 
-        startDateInput.addEventListener('change', () => dateSlider.noUiSlider.set([dateToTimestamp(new Date(startDateInput.value)), null]));
-        endDateInput.addEventListener('change', () => dateSlider.noUiSlider.set([null, dateToTimestamp(new Date(endDateInput.value))]));
-
         createCharts();
+        setupInteractivity();
         initializePyodide();
     }
 
