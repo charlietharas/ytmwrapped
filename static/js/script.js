@@ -84,8 +84,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         renderList(allSongsList, allSongs, songSearchInput.value, 'song');
         renderList(allArtistsList, allArtists, artistSearchInput.value, 'artist');
-        renderPeriodicTable(weeklyTopSongsDiv, top_songs_weekly, 'week');
-        renderPeriodicTable(monthlyTopSongsDiv, top_songs_monthly, 'month');
+        renderPeriodicTable('weekly-top-songs-card', top_songs_weekly, 'week');
+        renderPeriodicTable('monthly-top-songs-card', top_songs_monthly, 'month');
         
         resetAndLoadHistory();
     }
@@ -121,34 +121,77 @@ document.addEventListener('DOMContentLoaded', (event) => {
         });
     }
 
-    function renderPeriodicTable(container, data, periodType) {
-        if (!container) return;
-        container.innerHTML = '';
-        const periods = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
-        if (periods.length === 0) return;
+    function renderPeriodicTable(cardId, data, periodType) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
 
-        const navigationDiv = document.createElement('div');
-        navigationDiv.style.cssText = 'display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;';
-        const prevButton = document.createElement('button');
-        prevButton.textContent = '←';
-        const nextButton = document.createElement('button');
-        nextButton.textContent = '→';
-        const dropdown = document.createElement('select');
-        dropdown.style.flex = '1';
-        const contentDiv = document.createElement('div');
-        contentDiv.style.minHeight = '200px';
+        const navContainer = card.querySelector('.card-header-controls');
+        const contentContainer = card.querySelector('.card-content');
+        contentContainer.innerHTML = ''; // Clear previous content
+
+        const periods = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
+        if (periods.length === 0) {
+            contentContainer.innerHTML = `<p>No data for this period.</p>`;
+            return;
+        }
 
         let currentIndex = periods.length - 1;
+        let currentSearchTerm = '';
 
+        // Create main elements
+        const navigationDiv = document.createElement('div');
+        navigationDiv.style.cssText = 'display: flex; align-items: center; gap: 0.5rem;';
+        
+        const prevButton = document.createElement('button');
+        prevButton.textContent = '←';
+        prevButton.style.padding = '0.5rem';
+
+        const nextButton = document.createElement('button');
+        nextButton.textContent = '→';
+        nextButton.style.padding = '0.5rem';
+
+        const selectWrapper = document.createElement('div');
+        selectWrapper.className = 'select-wrapper';
+        selectWrapper.style.flex = '1';
+        const dropdown = document.createElement('select');
+        
+        const listWrapper = document.createElement('div');
+        listWrapper.className = 'list-wrapper';
+        
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Filter songs...';
+
+        const list = document.createElement('ol');
+
+        // Function to update the list content
         function updateContent() {
             const currentPeriod = periods[currentIndex];
-            const songs = [...data[currentPeriod]].sort((a, b) => b[1] - a[1]);
+            const songs = [...data[currentPeriod]]
+                .filter(song => song[0].toLowerCase().includes(currentSearchTerm.toLowerCase()))
+                .sort((a, b) => b[1] - a[1]);
+            
             dropdown.value = currentPeriod;
-            contentDiv.innerHTML = `<h4 style="margin-top: 0; margin-bottom: 1rem; color: #666;">${currentPeriod}</h4><ol style="margin: 0; padding-left: 2rem;">${songs.map(song => `<li data-song="${song[0]}" data-period="${currentPeriod}" data-period-type="${periodType}">${song[0]} (${song[1]} plays)</li>`).join('')}</ol>`;
+            list.innerHTML = ''; // Clear previous list
+
+            if (songs.length === 0) {
+                list.innerHTML = '<li>No matching songs found.</li>';
+            } else {
+                songs.forEach(song => {
+                    const li = document.createElement('li');
+                    li.dataset.song = song[0];
+                    li.dataset.period = currentPeriod;
+                    li.dataset.periodType = periodType;
+                    li.textContent = `${song[0]} (${song[1]} plays)`;
+                    list.appendChild(li);
+                });
+            }
+
             prevButton.disabled = currentIndex === 0;
             nextButton.disabled = currentIndex === periods.length - 1;
         }
 
+        // Populate dropdown
         periods.forEach(period => {
             const option = document.createElement('option');
             option.value = period;
@@ -156,12 +199,22 @@ document.addEventListener('DOMContentLoaded', (event) => {
             dropdown.appendChild(option);
         });
 
+        // Event Listeners
         prevButton.addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; updateContent(); } });
         nextButton.addEventListener('click', () => { if (currentIndex < periods.length - 1) { currentIndex++; updateContent(); } });
         dropdown.addEventListener('change', () => { currentIndex = periods.indexOf(dropdown.value); updateContent(); });
+        searchInput.addEventListener('input', (e) => { currentSearchTerm = e.target.value; updateContent(); });
 
-        navigationDiv.append(prevButton, dropdown, nextButton);
-        container.append(navigationDiv, contentDiv);
+        // Assemble the component
+        selectWrapper.appendChild(dropdown);
+        navigationDiv.append(prevButton, selectWrapper, nextButton);
+        navContainer.innerHTML = ''; // Clear old nav
+        navContainer.appendChild(navigationDiv);
+
+        listWrapper.append(searchInput, list);
+        contentContainer.appendChild(listWrapper);
+        
+        // Initial render
         updateContent();
     }
 
@@ -208,7 +261,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const fragment = document.createDocumentFragment();
             history.forEach(item => {
                 const li = document.createElement('li');
-                li.innerHTML = `<strong>${item.artist_title}</strong><small>${item.time}</small>`;
+                li.innerHTML = `<strong>${item.artist_title}</strong><br><small>${item.time}</small>`;
                 fragment.appendChild(li);
             });
             historyList.appendChild(fragment);
@@ -386,23 +439,62 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // === Chart Initialization ===
     function createCharts() {
-        const commonOptions = { plugins: { legend: { display: false } }, maintainAspectRatio: false };
-        
+        const commonOptions = { 
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    bodyFont: { size: 14 },
+                    titleFont: { size: 16 }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 12 } },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                },
+                y: {
+                    ticks: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 12 } },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                }
+            }
+        };
+
+        const barChartColors = {
+            backgroundColor: 'rgba(187, 134, 252, 0.2)',
+            borderColor: 'rgba(187, 134, 252, 1)',
+            borderWidth: 1
+        };
+
         topSongsChart = new Chart(topSongsChartCanvas, { 
             type: 'bar', 
-            options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } } }, 
-            data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(255, 99, 132, 0.2)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }] } 
+            options: { ...commonOptions, indexAxis: 'y' }, 
+            data: { labels: [], datasets: [{ label: 'View Count', ...barChartColors, data: [] }] } 
         });
 
         topArtistsChart = new Chart(topArtistsChartCanvas, { 
             type: 'bar', 
-            options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } } }, 
-            data: { labels: [], datasets: [{ label: 'View Count', data: [], backgroundColor: 'rgba(54, 162, 235, 0.2)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] } 
+            options: { ...commonOptions, indexAxis: 'y' }, 
+            data: { labels: [], datasets: [{ label: 'View Count', ...barChartColors, data: [] }] } 
         });
         
-        songsPerDayChart = new Chart(songsPerDayChartCanvas, { type: 'bar', options: { ...commonOptions, scales: { y: { beginAtZero: true } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [], backgroundColor: 'rgba(75, 192, 192, 0.2)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 }] } });
-        songsPerHourChart = new Chart(songsPerHourChartCanvas, { type: 'polarArea', options: { ...commonOptions, scales: { r: { display: true, angleLines: { display: true }, pointLabels: { display: true, centerPointLabels: false, font: { size: 14 } }, ticks: { display: false } } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [] }] } });
-        songsPerDayOfWeekChart = new Chart(songsPerDayOfWeekChartCanvas, { type: 'bar', options: { ...commonOptions, scales: { y: { beginAtZero: true }, x: { ticks: { font: { size: 14 } } } } }, data: { labels: [], datasets: [{ label: 'Songs', data: [], backgroundColor: 'rgba(255, 159, 64, 0.2)', borderColor: 'rgba(255, 159, 64, 1)', borderWidth: 1 }] } });
+        songsPerDayChart = new Chart(songsPerDayChartCanvas, { 
+            type: 'bar', 
+            options: { ...commonOptions }, 
+            data: { labels: [], datasets: [{ label: 'Songs', ...barChartColors, data: [] }] } 
+        });
+
+        songsPerHourChart = new Chart(songsPerHourChartCanvas, { 
+            type: 'polarArea', 
+            options: { ...commonOptions, scales: { r: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, angleLines: { color: 'rgba(255, 255, 255, 0.1)' }, pointLabels: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 14 } }, ticks: { display: false, backdropColor: 'rgba(0,0,0,0)' } } } }, 
+            data: { labels: [], datasets: [{ label: 'Songs', data: [] }] } 
+        });
+
+        songsPerDayOfWeekChart = new Chart(songsPerDayOfWeekChartCanvas, { 
+            type: 'bar', 
+            options: { ...commonOptions }, 
+            data: { labels: [], datasets: [{ label: 'Songs', ...barChartColors, data: [] }] } 
+        });
     }
 
     // === Interactivity Setup ===

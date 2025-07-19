@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTube Music Wrapped</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css" />
     <link rel="stylesheet" href="static/css/style.css">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
@@ -60,57 +63,123 @@
             </div>
 
             <div id="results" class="hidden">
-                <div class="controls">
-                    <div id="date-slider"></div>
-                </div>
-                <h2>Analysis Results</h2>
-                <div id="total-videos"></div>
-                <div id="total-artists"></div>
-                <div class="charts-container">
-                    <div class="chart-wrapper">
-                        <h3>Top 20 Most Viewed Songs</h3>
-                        <canvas id="top-songs-chart"></canvas>
+                <!-- This will be a grid container -->
+                <div class="card full-width">
+                    <div class="card-header">
+                        <h3>Analysis Period</h3>
                     </div>
-                    <div class="chart-wrapper">
-                        <h3>Top 20 Most Listened To Artists</h3>
-                        <canvas id="top-artists-chart"></canvas>
+                    <div class="card-content">
+                        <div id="date-slider"></div>
                     </div>
                 </div>
-                <div class="chart-wrapper">
-                    <h3>Songs per Day</h3>
-                    <canvas id="songs-per-day-chart"></canvas>
+
+                <div class="card full-width">
+                    <div class="card-header">
+                        <h3>Songs Per Day</h3>
+                        <p>A timeline of your listening activity for the selected period.</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="chart-wrapper">
+                            <canvas id="songs-per-day-chart"></canvas>
+                        </div>
+                    </div>
                 </div>
-                <div class="lists-container">
-                    <div class="list-wrapper">
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Key Statistics</h3>
+                    </div>
+                    <div class="card-content">
+                        <div id="total-videos" class="stat-item"></div>
+                        <div id="total-artists" class="stat-item"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Listening Habits</h3>
+                        <p>When you listen during the day and week.</p>
+                    </div>
+                    <div class="card-content" style="display: flex; gap: 2rem;">
+                        <div class="chart-wrapper" style="flex: 1;">
+                            <canvas id="songs-per-hour-chart"></canvas>
+                        </div>
+                        <div class="chart-wrapper" style="flex: 1;">
+                            <canvas id="songs-per-day-of-week-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Top 20 Songs</h3>
+                        <p>Your most frequently played tracks.</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="chart-wrapper">
+                            <canvas id="top-songs-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Top 20 Artists</h3>
+                        <p>Your most frequently played artists.</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="chart-wrapper">
+                            <canvas id="top-artists-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
                         <h3>All Songs</h3>
-                        <input type="text" id="song-search" placeholder="Search songs...">
-                        <ol id="all-songs-list"></ol>
+                        <p>A searchable list of every song in this period.</p>
                     </div>
-                    <div class="list-wrapper">
+                    <div class="card-content">
+                        <div class="list-wrapper">
+                            <input type="text" id="song-search" placeholder="Search songs...">
+                            <ol id="all-songs-list"></ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
                         <h3>All Artists</h3>
-                        <input type="text" id="artist-search" placeholder="Search artists...">
-                        <ol id="all-artists-list"></ol>
+                        <p>A searchable list of every artist in this period.</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="list-wrapper">
+                            <input type="text" id="artist-search" placeholder="Search artists...">
+                            <ol id="all-artists-list"></ol>
+                        </div>
                     </div>
                 </div>
-                <div class="chrono-container">
-                    <div class="chart-wrapper">
-                        <h3>Songs per Hour</h3>
-                        <canvas id="songs-per-hour-chart"></canvas>
+
+                <div class="card" id="weekly-top-songs-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <h3>Top Songs per Week</h3>
+                            <p>Your top track for each week.</p>
+                        </div>
+                        <div class="card-header-controls"></div>
                     </div>
-                    <div class="chart-wrapper">
-                        <h3>Songs per Day of Week</h3>
-                        <canvas id="songs-per-day-of-week-chart"></canvas>
-                    </div>
+                    <div class="card-content"></div>
                 </div>
-                <div class="periodic-top-songs-container">
-                    <div class="list-wrapper">
-                        <h3>Top Songs per Week</h3>
-                        <div id="weekly-top-songs"></div>
+
+                <div class="card" id="monthly-top-songs-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <h3>Top Songs per Month</h3>
+                            <p>Your top track for each month.</p>
+                        </div>
+                        <div class="card-header-controls"></div>
                     </div>
-                    <div class="list-wrapper">
-                        <h3>Top Songs per Month</h3>
-                        <div id="monthly-top-songs"></div>
-                    </div>
+                    <div class="card-content"></div>
                 </div>
             </div>
         </main>
