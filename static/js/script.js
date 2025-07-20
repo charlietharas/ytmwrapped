@@ -129,9 +129,19 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const contentContainer = card.querySelector('.card-content');
         contentContainer.innerHTML = ''; // Clear previous content
 
+        // Add the description
+        const description = document.createElement('p');
+        description.className = 'card-description';
+        description.textContent = `Your top track for each ${periodType}.`;
+        contentContainer.appendChild(description);
+
         const periods = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
         if (periods.length === 0) {
-            contentContainer.innerHTML = `<p>No data for this period.</p>`;
+            const p = document.createElement('p');
+            p.textContent = 'No data for this period.';
+            contentContainer.appendChild(p);
+            // Ensure nav is cleared even if there's no data
+            if (navContainer) navContainer.innerHTML = '';
             return;
         }
 

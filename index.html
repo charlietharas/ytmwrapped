@@ -64,10 +64,11 @@
 
             <div id="results" class="hidden">
                 <!-- This will be a grid container -->
-                <div class="card full-width">
+                <div class="card full-width slider-card">
                     <div class="card-header">
                         <h3>Analysis Period</h3>
                     </div>
+                    <div style="height: 1.5rem;"></div>
                     <div class="card-content">
                         <div id="date-slider"></div>
                     </div>
@@ -76,9 +77,9 @@
                 <div class="card full-width">
                     <div class="card-header">
                         <h3>Songs Per Day</h3>
-                        <p>A timeline of your listening activity for the selected period.</p>
                     </div>
                     <div class="card-content">
+                        <p class="card-description">A timeline of your listening activity for the selected period.</p>
                         <div class="chart-wrapper">
                             <canvas id="songs-per-day-chart"></canvas>
                         </div>
@@ -98,14 +99,16 @@
                 <div class="card">
                     <div class="card-header">
                         <h3>Listening Habits</h3>
-                        <p>When you listen during the day and week.</p>
                     </div>
-                    <div class="card-content" style="display: flex; gap: 2rem;">
-                        <div class="chart-wrapper" style="flex: 1;">
-                            <canvas id="songs-per-hour-chart"></canvas>
-                        </div>
-                        <div class="chart-wrapper" style="flex: 1;">
-                            <canvas id="songs-per-day-of-week-chart"></canvas>
+                    <div class="card-content">
+                        <p class="card-description">When you listen during the day and week.</p>
+                        <div style="display: flex; gap: 2rem;">
+                            <div class="chart-wrapper" style="flex: 1;">
+                                <canvas id="songs-per-hour-chart"></canvas>
+                            </div>
+                            <div class="chart-wrapper" style="flex: 1;">
+                                <canvas id="songs-per-day-of-week-chart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -113,9 +116,9 @@
                 <div class="card">
                     <div class="card-header">
                         <h3>Top 20 Songs</h3>
-                        <p>Your most frequently played tracks.</p>
                     </div>
                     <div class="card-content">
+                        <p class="card-description">Your most frequently played tracks.</p>
                         <div class="chart-wrapper">
                             <canvas id="top-songs-chart"></canvas>
                         </div>
@@ -125,9 +128,9 @@
                 <div class="card">
                     <div class="card-header">
                         <h3>Top 20 Artists</h3>
-                        <p>Your most frequently played artists.</p>
                     </div>
                     <div class="card-content">
+                        <p class="card-description">Your most frequently played artists.</p>
                         <div class="chart-wrapper">
                             <canvas id="top-artists-chart"></canvas>
                         </div>
@@ -137,9 +140,9 @@
                 <div class="card">
                     <div class="card-header">
                         <h3>All Songs</h3>
-                        <p>A searchable list of every song in this period.</p>
                     </div>
                     <div class="card-content">
+                        <p class="card-description">A searchable list of every song in this period.</p>
                         <div class="list-wrapper">
                             <input type="text" id="song-search" placeholder="Search songs...">
                             <ol id="all-songs-list"></ol>
@@ -150,9 +153,9 @@
                 <div class="card">
                     <div class="card-header">
                         <h3>All Artists</h3>
-                        <p>A searchable list of every artist in this period.</p>
                     </div>
                     <div class="card-content">
+                        <p class="card-description">A searchable list of every artist in this period.</p>
                         <div class="list-wrapper">
                             <input type="text" id="artist-search" placeholder="Search artists...">
                             <ol id="all-artists-list"></ol>
@@ -162,24 +165,20 @@
 
                 <div class="card" id="weekly-top-songs-card">
                     <div class="card-header">
-                        <div class="card-title">
-                            <h3>Top Songs per Week</h3>
-                            <p>Your top track for each week.</p>
-                        </div>
+                        <h3>Top Songs per Week</h3>
                         <div class="card-header-controls"></div>
                     </div>
-                    <div class="card-content"></div>
+                    <div class="card-content">
+                    </div>
                 </div>
 
                 <div class="card" id="monthly-top-songs-card">
                     <div class="card-header">
-                        <div class="card-title">
-                            <h3>Top Songs per Month</h3>
-                            <p>Your top track for each month.</p>
-                        </div>
+                        <h3>Top Songs per Month</h3>
                         <div class="card-header-controls"></div>
                     </div>
-                    <div class="card-content"></div>
+                    <div class="card-content">
+                    </div>
                 </div>
             </div>
         </main>
