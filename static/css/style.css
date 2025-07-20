@@ -466,3 +466,43 @@ input[type="text"] {
 .hidden {
     display: none !important;
 }
+
+/* === Custom Scrollbar Styling === */
+/* General scrollbar for main layout */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 10px;
+    border: 3px solid var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
+/* Subtle scrollbar for inside cards */
+.card ::-webkit-scrollbar {
+    width: 8px;
+}
+
+.card ::-webkit-scrollbar-track {
+    background: var(--color-bg-card);
+}
+
+.card ::-webkit-scrollbar-thumb {
+    background-color: #444;
+    border-radius: 10px;
+    border: 2px solid var(--color-bg-card);
+}
+
+.card ::-webkit-scrollbar-thumb:hover {
+    background-color: #666;
+}
