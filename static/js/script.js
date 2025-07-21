@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     let historyFilters = []; // Changed to an array for stacking
     const HISTORY_PAGE_SIZE = 75;
     const MAX_HISTORY_ITEMS = 450;
+    let allSongsData = [], allArtistsData = [];
 
     // === Utility Functions ===
     const dateToTimestamp = (date) => date && !isNaN(date.getTime()) ? date.getTime() : NaN;
@@ -63,6 +64,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         const allSongs = Object.entries(top_songs).sort((a, b) => b[1] - a[1]);
         const allArtists = Object.entries(top_artists).sort((a, b) => b[1] - a[1]);
+
+        allSongsData = allSongs;
+        allArtistsData = allArtists;
 
         totalVideosDiv.textContent = `Total songs: ${total_videos}`;
         totalArtistsDiv.textContent = `Total artists: ${allArtists.length}`;
@@ -590,6 +594,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
         document.getElementById('header-controls').appendChild(startOverButtonInHeader);
         startOverButtonInHeader.addEventListener('click', resetApp);
 
+
+        songSearchInput.addEventListener('input', (e) => {
+            renderList(allSongsList, allSongsData, e.target.value, 'song');
+        });
+
+        artistSearchInput.addEventListener('input', (e) => {
+            renderList(allArtistsList, allArtistsData, e.target.value, 'artist');
+        });
 
         historySearchInput.addEventListener('input', (e) => {
             clearTimeout(historyDebounceTimer);
