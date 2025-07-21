@@ -476,15 +476,19 @@ document.addEventListener('DOMContentLoaded', (event) => {
             borderWidth: 1
         };
 
+        const topChartsOptions = JSON.parse(JSON.stringify(commonOptions));
+        topChartsOptions.indexAxis = 'y';
+        topChartsOptions.scales.y.ticks.autoSkip = false;
+
         topSongsChart = new Chart(topSongsChartCanvas, { 
             type: 'bar', 
-            options: { ...commonOptions, indexAxis: 'y' }, 
+            options: topChartsOptions, 
             data: { labels: [], datasets: [{ label: 'View Count', ...barChartColors, data: [] }] } 
         });
 
         topArtistsChart = new Chart(topArtistsChartCanvas, { 
             type: 'bar', 
-            options: { ...commonOptions, indexAxis: 'y' }, 
+            options: topChartsOptions, 
             data: { labels: [], datasets: [{ label: 'View Count', ...barChartColors, data: [] }] } 
         });
         
