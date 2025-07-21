@@ -86,9 +86,19 @@ def get_stats_for_period(start_date_str, end_date_str):
         mask = (master_df['time'] >= start_date) & (master_df['time'] <= end_date)
         filtered_df = master_df.loc[mask].copy()
 
-        if filtered_df.empty:
-            return {"error": "No listening history found for the selected date range."}
+        # Timeline data should always cover the full range
+        songs_per_day = master_df.groupby(master_df['time'].dt.date).size()
+        songs_per_day_serializable = {day.strftime('%Y-%m-%d'): count for day, count in songs_per_day.items()}
 
+        if filtered_df.empty:
+            return {
+                "total_videos": 0, "top_songs": {}, "top_artists": {},
+                "songs_per_day": songs_per_day_serializable,
+                "songs_per_hour": {}, "songs_per_day_of_week": {},
+                "top_songs_weekly": {}, "top_songs_monthly": {}
+            }
+        
+        # All other stats are based on the filtered period
         total_videos = len(filtered_df)
         
         # Create a mapping from video_id to artist_title for display
@@ -99,7 +109,6 @@ def get_stats_for_period(start_date_str, end_date_str):
 
         top_artists = filtered_df['artist'].value_counts().to_dict()
 
-        songs_per_day = filtered_df.groupby(filtered_df['time'].dt.date).size()
         songs_per_hour = filtered_df.groupby(filtered_df['time'].dt.hour).size()
         songs_per_day_of_week = filtered_df.groupby(filtered_df['time'].dt.dayofweek).size()
         

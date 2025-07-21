@@ -189,6 +189,14 @@ header h1 {
     margin-bottom: 1rem;
 }
 
+#timeline-date-display {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin-bottom: 1rem;
+    min-height: 1.2em; /* Prevent layout shift */
+}
+
 .card-content {
     flex-grow: 1;
 }
@@ -304,6 +312,13 @@ input[type="text"] {
 
 .list-wrapper li:hover {
     background-color: rgba(255, 255, 255, 0.05);
+}
+
+.listening-habits-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
 }
 
 /* === Slider (noUiSlider) === */
@@ -458,7 +473,7 @@ input[type="text"] {
 .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
 .loading-dots span:nth-child(3) { animation-delay: 0s; }
 
-@keyframes dots {
+ @keyframes dots {
     0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
     40% { transform: scale(1); opacity: 1; }
 }
@@ -505,4 +520,42 @@ input[type="text"] {
 
 .card ::-webkit-scrollbar-thumb:hover {
     background-color: #666;
+}
+
+/* === New styles for zoom button === */
+.card-header-controls {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+#zoom-toggle-btn,
+#clear-filter-btn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.7);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px; /* Adjusted for better icon display */
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+#zoom-toggle-btn:hover,
+#clear-filter-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+#zoom-toggle-btn.hidden,
+#clear-filter-btn.hidden {
+    display: none;
 }

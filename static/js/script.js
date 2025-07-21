@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const loadingIndicator = document.getElementById('loading-indicator');
     const resultsDiv = document.getElementById('results');
     const analyzingIndicator = document.getElementById('analyzing-indicator');
-    const dateSlider = document.getElementById('date-slider');
     const songSearchInput = document.getElementById('song-search');
     const artistSearchInput = document.getElementById('artist-search');
     const allSongsList = document.getElementById('all-songs-list');
@@ -28,11 +27,18 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const historyControls = document.querySelector('.history-controls');
     const activeFilterContainer = document.getElementById('active-filter-container');
     const filterManagementContainer = document.getElementById('filter-management-container');
+    const zoomToggleBtn = document.getElementById('zoom-toggle-btn');
+    const clearFilterBtn = document.getElementById('clear-filter-btn');
+    const timelineDateDisplay = document.getElementById('timeline-date-display');
 
     // === State ===
     let pyodide;
     let topSongsChart, topArtistsChart, songsPerDayChart, songsPerHourChart, songsPerDayOfWeekChart;
     let isAnalysisComplete = false;
+
+    // Date range state
+    let totalMinTimestamp, totalMaxTimestamp;
+    let filterStartTimestamp, filterEndTimestamp;
 
     // History Explorer State
     let historyCurrentPage = 1;
@@ -76,7 +82,28 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         updateChart(topSongsChart, top20Songs.map(item => item[0]), top20Songs.map(item => item[1]));
         updateChart(topArtistsChart, top20Artists.map(item => item[0]), top20Artists.map(item => item[1]));
-        updateChart(songsPerDayChart, Object.keys(songs_per_day), Object.values(songs_per_day));
+        
+        // For Songs Per Day, we color the bars based on the filter
+        const songsPerDayLabels = Object.keys(songs_per_day);
+        const songsPerDayData = Object.values(songs_per_day);
+        const accentColor = 'rgba(187, 134, 252, 1)';
+        const accentBgColor = 'rgba(187, 134, 252, 0.2)';
+        const greyColor = 'rgba(100, 100, 100, 0.5)';
+        const greyBgColor = 'rgba(100, 100, 100, 0.2)';
+
+        const songsPerDayBarColors = songsPerDayLabels.map(dateStr => {
+            const timestamp = dateToTimestamp(new Date(dateStr));
+            return (timestamp >= filterStartTimestamp && timestamp <= filterEndTimestamp) ? accentBgColor : greyBgColor;
+        });
+        const songsPerDayBorderColors = songsPerDayLabels.map(dateStr => {
+            const timestamp = dateToTimestamp(new Date(dateStr));
+            return (timestamp >= filterStartTimestamp && timestamp <= filterEndTimestamp) ? accentColor : greyColor;
+        });
+
+        updateChart(songsPerDayChart, songsPerDayLabels, songsPerDayData, { 
+            barColors: songsPerDayBarColors,
+            borderColors: songsPerDayBorderColors
+        });
         
         const hourLabels = Array.from({length: 24}, (_, i) => i);
         const hourData = hourLabels.map(hour => songs_per_hour[hour] || 0);
@@ -94,10 +121,16 @@ document.addEventListener('DOMContentLoaded', (event) => {
         resetAndLoadHistory();
     }
 
-    function updateChart(chart, labels, data) {
+    function updateChart(chart, labels, data, options = {}) {
         if (!chart) return;
         chart.data.labels = labels;
-        chart.data.datasets.forEach((dataset) => { dataset.data = data; });
+        chart.data.datasets.forEach((dataset) => { 
+            dataset.data = data; 
+            if (options.barColors) {
+                dataset.backgroundColor = options.barColors;
+                dataset.borderColor = options.borderColors;
+            }
+        });
         if (chart.config.type === 'polarArea') {
             chart.data.datasets[0].backgroundColor = generateColorPalette(labels.length);
         }
@@ -237,7 +270,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (!isAnalysisComplete || historyIsLoading || !historyHasMore) return;
         historyIsLoading = true;
 
-        const [startTimestamp, endTimestamp] = dateSlider.noUiSlider.get(true);
+        const { min: startTimestamp, max: endTimestamp } = songsPerDayChart.scales.x;
         const startDate = new Date(startTimestamp).toISOString();
         const endDate = new Date(endTimestamp).toISOString();
 
@@ -400,37 +433,106 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
 
         const { min_date, max_date } = initialResults;
-        const minTimestamp = dateToTimestamp(new Date(min_date));
-        const maxTimestamp = dateToTimestamp(new Date(max_date));
+        totalMinTimestamp = dateToTimestamp(new Date(min_date));
+        totalMaxTimestamp = dateToTimestamp(new Date(max_date));
+        filterStartTimestamp = totalMinTimestamp;
+        filterEndTimestamp = totalMaxTimestamp;
 
-        if (isNaN(minTimestamp) || isNaN(maxTimestamp)) {
+        if (isNaN(totalMinTimestamp) || isNaN(totalMaxTimestamp)) {
             alert("The date range from the history files is invalid.");
             resetApp();
             return;
         }
 
-        dateSlider.noUiSlider.updateOptions({
-            range: { min: minTimestamp, max: maxTimestamp },
-            start: [minTimestamp, maxTimestamp]
-        });
+        songsPerDayChart.options.scales.x.min = totalMinTimestamp;
+        songsPerDayChart.options.scales.x.max = totalMaxTimestamp;
         
         isAnalysisComplete = true;
-        await updateStatsForPeriod();
+        await updateStatsForPeriod(totalMinTimestamp, totalMaxTimestamp);
         resultsDiv.classList.remove('hidden');
         historyExplorerContainer.classList.remove('hidden');
         historyControls.classList.remove('hidden');
     }
 
-    async function updateStatsForPeriod() {
+    async function updateStatsForPeriod(startTimestamp, endTimestamp) {
         if (!isAnalysisComplete) return;
-        const [startTimestamp, endTimestamp] = dateSlider.noUiSlider.get(true);
+
+        filterStartTimestamp = startTimestamp;
+        filterEndTimestamp = endTimestamp;
+
         const startDate = new Date(startTimestamp).toISOString();
         const endDate = new Date(endTimestamp).toISOString();
+
+        // Update annotations to show the greyed-out areas
+        if (songsPerDayChart.options.plugins.annotation) {
+            songsPerDayChart.options.plugins.annotation.annotations.leftBox.xMax = startTimestamp;
+            songsPerDayChart.options.plugins.annotation.annotations.rightBox.xMin = endTimestamp;
+        }
+        
+        // When a new filter is applied, always reset the zoom to the full view
+        songsPerDayChart.options.scales.x.min = totalMinTimestamp;
+        songsPerDayChart.options.scales.x.max = totalMaxTimestamp;
+
+        songsPerDayChart.update('none');
+        updateChartControlButtons();
 
         const resultsProxy = pyodide.globals.get('get_stats_for_period')(startDate, endDate);
         const results = resultsProxy.toJs({ dict_converter: Object.fromEntries });
         resultsProxy.destroy();
         updateDashboard(results);
+    }
+
+    function updateChartControlButtons() {
+        const isFiltered = filterStartTimestamp > totalMinTimestamp || filterEndTimestamp < totalMaxTimestamp;
+
+        // Update date range display
+        const formatDate = (ts) => new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        if (isFiltered) {
+            timelineDateDisplay.textContent = `${formatDate(filterStartTimestamp)} – ${formatDate(filterEndTimestamp)}`;
+        } else {
+            timelineDateDisplay.textContent = `Full Range: ${formatDate(totalMinTimestamp)} – ${formatDate(totalMaxTimestamp)}`;
+        }
+
+        if (!isFiltered) {
+            zoomToggleBtn.classList.add('hidden');
+            clearFilterBtn.classList.add('hidden');
+            return;
+        }
+
+        // If a filter is active, show the buttons
+        zoomToggleBtn.classList.remove('hidden');
+        clearFilterBtn.classList.remove('hidden');
+
+        // --- Configure Clear Button ---
+        clearFilterBtn.innerHTML = '&#x21BA;'; // Restart arrow icon
+        clearFilterBtn.title = 'Clear Filter';
+        clearFilterBtn.onclick = () => {
+            updateStatsForPeriod(totalMinTimestamp, totalMaxTimestamp);
+        };
+
+        // --- Configure Zoom Button ---
+        const chart = songsPerDayChart;
+        const isZoomedIn = chart.scales.x.min > totalMinTimestamp || chart.scales.x.max < totalMaxTimestamp;
+
+        if (isZoomedIn) {
+            zoomToggleBtn.innerHTML = '&#x2194;'; // Zoom Out icon (expand)
+            zoomToggleBtn.title = 'Zoom Out';
+            zoomToggleBtn.onclick = () => {
+                chart.options.scales.x.min = totalMinTimestamp;
+                chart.options.scales.x.max = totalMaxTimestamp;
+                chart.update();
+                updateChartControlButtons(); // Update button state after action
+            };
+        } else {
+            zoomToggleBtn.innerHTML = '&#x2922;'; // Zoom In icon (focus)
+            zoomToggleBtn.title = 'Zoom to Selection';
+            zoomToggleBtn.onclick = () => {
+                chart.options.scales.x.min = filterStartTimestamp;
+                chart.options.scales.x.max = filterEndTimestamp;
+                chart.update();
+                updateChartControlButtons(); // Update button state after action
+            };
+        }
     }
     
     function resetApp() {
@@ -498,7 +600,70 @@ document.addEventListener('DOMContentLoaded', (event) => {
         
         songsPerDayChart = new Chart(songsPerDayChartCanvas, { 
             type: 'bar', 
-            options: { ...commonOptions }, 
+            options: { 
+                ...commonOptions,
+                scales: {
+                    x: {
+                        ...commonOptions.scales.x,
+                        type: 'time',
+                        time: {
+                            unit: 'month',
+                            tooltipFormat: 'MMM dd, yyyy',
+                            displayFormats: {
+                                year: 'yyyy',
+                                month: 'MMM'
+                            }
+                        },
+                        ticks: {
+                            ...commonOptions.scales.x.ticks,
+                            major: {
+                                enabled: true, // This will highlight year ticks
+                            },
+                            font: function(context) {
+                                if (context.tick && context.tick.major) {
+                                    return { weight: 'bold' };
+                                }
+                            }
+                        },
+                        min: new Date().setFullYear(new Date().getFullYear() - 1), // Default
+                        max: new Date(), // Default
+                    },
+                    y: { ...commonOptions.scales.y }
+                },
+                plugins: {
+                    ...commonOptions.plugins,
+                    annotation: {
+                        drawTime: 'afterDatasetsDraw',
+                        annotations: {
+                            // This will be the selection box drawn by the user
+                            selectionBox: {
+                                type: 'box',
+                                display: false,
+                                xMin: 0,
+                                xMax: 0,
+                                backgroundColor: 'rgba(187, 134, 252, 0.2)',
+                                borderColor: 'rgba(187, 134, 252, 1)',
+                                borderWidth: 1,
+                            },
+                            // These create the greyed-out areas
+                            leftBox: {
+                                type: 'box',
+                                xMin: -Infinity,
+                                xMax: 0, // Placeholder
+                                backgroundColor: 'rgba(100, 100, 100, 0.2)',
+                                borderColor: 'rgba(100, 100, 100, 0.0)',
+                            },
+                            rightBox: {
+                                type: 'box',
+                                xMin: 0, // Placeholder
+                                xMax: Infinity,
+                                backgroundColor: 'rgba(100, 100, 100, 0.2)',
+                                borderColor: 'rgba(100, 100, 100, 0.0)',
+                            }
+                        }
+                    }
+                }
+            }, 
             data: { labels: [], datasets: [{ label: 'Songs', ...barChartColors, data: [] }] } 
         });
 
@@ -556,33 +721,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 removeHistoryFilter(index);
             }
         });
-
-        // Date slider tooltip editing
-        dateSlider.addEventListener('dblclick', (e) => {
-            if (e.target.classList.contains('noUi-tooltip')) {
-                const handleIndex = e.target.closest('.noUi-handle').dataset.handle;
-                const originalValue = timestampToDateString(dateSlider.noUiSlider.get(true)[handleIndex]);
-                
-                e.target.innerHTML = `<input type="date" value="${originalValue}" style="width: 100px; border: 1px solid #ccc; font-size: 12px;">`;
-                const input = e.target.querySelector('input');
-                input.focus();
-                input.select();
-
-                const saveChange = () => {
-                    const newTimestamp = dateToTimestamp(new Date(input.value));
-                    if (!isNaN(newTimestamp)) {
-                        const currentValues = dateSlider.noUiSlider.get(true);
-                        currentValues[handleIndex] = newTimestamp;
-                        dateSlider.noUiSlider.set(currentValues);
-                    }
-                    // The 'set' event will trigger the tooltip to re-render, so no need to manually remove the input
-                };
-
-                input.addEventListener('change', saveChange);
-                input.addEventListener('blur', saveChange);
-                input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') saveChange(); });
-            }
-        });
     }
 
     // === Event Listeners & Initial Setup ===
@@ -618,19 +756,65 @@ document.addEventListener('DOMContentLoaded', (event) => {
             }
         });
 
-        noUiSlider.create(dateSlider, {
-            range: { min: 0, max: 1 },
-            start: [0, 1],
-            connect: true,
-            tooltips: [
-                { to: (value) => timestampToDateString(value) },
-                { to: (value) => timestampToDateString(value) }
-            ]
+        // Manual drag-to-select logic
+        let isDragging = false;
+        let selectionStartValue = null;
+
+        songsPerDayChartCanvas.addEventListener('mousedown', (e) => {
+            const rect = songsPerDayChartCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const chart = songsPerDayChart;
+            const xScale = chart.scales.x;
+            
+            // Check if click is within the chart area
+            if (x >= xScale.left && x <= xScale.right) {
+                isDragging = true;
+                selectionStartValue = xScale.getValueForPixel(x);
+                
+                // Initialize selection box
+                const selectionBox = chart.options.plugins.annotation.annotations.selectionBox;
+                selectionBox.display = true;
+                selectionBox.xMin = selectionStartValue;
+                selectionBox.xMax = selectionStartValue;
+                chart.update('none');
+            }
         });
-        
-        dateSlider.noUiSlider.on('set', () => {
-            if (isAnalysisComplete) {
-                updateStatsForPeriod();
+
+        songsPerDayChartCanvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const rect = songsPerDayChartCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const chart = songsPerDayChart;
+                const xScale = chart.scales.x;
+                const currentValue = xScale.getValueForPixel(x);
+
+                // Update selection box
+                const selectionBox = chart.options.plugins.annotation.annotations.selectionBox;
+                selectionBox.xMax = currentValue;
+                chart.update('none');
+            }
+        });
+
+        songsPerDayChartCanvas.addEventListener('mouseup', (e) => {
+            if (isDragging) {
+                isDragging = false;
+                const chart = songsPerDayChart;
+                const selectionBox = chart.options.plugins.annotation.annotations.selectionBox;
+                selectionBox.display = false;
+
+                let start = selectionBox.xMin;
+                let end = selectionBox.xMax;
+
+                // Ensure start is before end
+                if (start > end) {
+                    [start, end] = [end, start];
+                }
+
+                // If selection is valid (not just a click)
+                if (start !== end) {
+                    updateStatsForPeriod(start, end);
+                }
+                chart.update('none');
             }
         });
 

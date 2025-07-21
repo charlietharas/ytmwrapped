@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="static/css/style.css">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
 </head>
 <body>
@@ -64,22 +66,17 @@
 
             <div id="results" class="hidden">
                 <!-- This will be a grid container -->
-                <div class="card full-width slider-card">
-                    <div class="card-header">
-                        <h3>Analysis Period</h3>
-                    </div>
-                    <div style="height: 1.5rem;"></div>
-                    <div class="card-content">
-                        <div id="date-slider"></div>
-                    </div>
-                </div>
-
                 <div class="card full-width">
                     <div class="card-header">
-                        <h3>Songs Per Day</h3>
+                        <h3>Timeline</h3>
+                        <div class="card-header-controls">
+                            <button id="zoom-toggle-btn" class="hidden" title="Toggle zoom"></button>
+                            <button id="clear-filter-btn" class="hidden" title="Clear filter"></button>
+                        </div>
                     </div>
                     <div class="card-content">
-                        <p class="card-description">A timeline of your listening activity for the selected period.</p>
+                        <p class="card-description">Your listening timeline. Click and drag to select a date range.</p>
+                        <div id="timeline-date-display"></div>
                         <div class="chart-wrapper">
                             <canvas id="songs-per-day-chart"></canvas>
                         </div>
@@ -102,11 +99,11 @@
                     </div>
                     <div class="card-content">
                         <p class="card-description">When you listen during the day and week.</p>
-                        <div style="display: flex; gap: 2rem;">
-                            <div class="chart-wrapper" style="flex: 1;">
+                        <div class="listening-habits-grid">
+                            <div class="chart-wrapper">
                                 <canvas id="songs-per-hour-chart"></canvas>
                             </div>
-                            <div class="chart-wrapper" style="flex: 1;">
+                            <div class="chart-wrapper">
                                 <canvas id="songs-per-day-of-week-chart"></canvas>
                             </div>
                         </div>
