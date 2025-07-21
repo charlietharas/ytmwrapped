@@ -314,6 +314,12 @@ input[type="text"] {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
+.list-wrapper li.highlighted {
+    background-color: rgba(207, 102, 121, 0.2); /* Reddish highlight */
+    border-left: 3px solid var(--color-danger);
+    padding-left: calc(1rem - 3px);
+}
+
 .listening-habits-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

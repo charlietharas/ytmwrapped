@@ -65,7 +65,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         const {
             total_videos, top_songs, top_artists, songs_per_day,
-            songs_per_hour, songs_per_day_of_week, top_songs_weekly, top_songs_monthly
+            top_songs_stacked, top_artists_stacked, 
+            songs_per_hour_stacked, songs_per_day_of_week_stacked,
+            songs_per_day_stacked,
+            top_songs_weekly, top_songs_monthly
         } = results;
 
         const allSongs = Object.entries(top_songs).sort((a, b) => b[1] - a[1]);
@@ -75,90 +78,156 @@ document.addEventListener('DOMContentLoaded', (event) => {
         allArtistsData = allArtists;
 
         totalVideosDiv.textContent = `Total songs: ${total_videos}`;
-        totalArtistsDiv.textContent = `Total artists: ${allArtists.length}`;
+        totalArtistsDiv.textContent = `Total artists: ${top_artists_stacked.labels.length}`;
 
-        const top20Songs = allSongs.slice(0, 20);
-        const top20Artists = allArtists.slice(0, 20);
-
-        updateChart(topSongsChart, top20Songs.map(item => item[0]), top20Songs.map(item => item[1]));
-        updateChart(topArtistsChart, top20Artists.map(item => item[0]), top20Artists.map(item => item[1]));
+        // --- Update Charts ---
+        const isFiltered = historyFilters.length > 0;
         
-        // For Songs Per Day, we color the bars based on the filter
-        const songsPerDayLabels = Object.keys(songs_per_day);
-        const songsPerDayData = Object.values(songs_per_day);
-        const accentColor = 'rgba(187, 134, 252, 1)';
-        const accentBgColor = 'rgba(187, 134, 252, 0.2)';
-        const greyColor = 'rgba(100, 100, 100, 0.5)';
-        const greyBgColor = 'rgba(100, 100, 100, 0.2)';
-
-        const songsPerDayBarColors = songsPerDayLabels.map(dateStr => {
-            const timestamp = dateToTimestamp(new Date(dateStr));
-            return (timestamp >= filterStartTimestamp && timestamp <= filterEndTimestamp) ? accentBgColor : greyBgColor;
-        });
-        const songsPerDayBorderColors = songsPerDayLabels.map(dateStr => {
-            const timestamp = dateToTimestamp(new Date(dateStr));
-            return (timestamp >= filterStartTimestamp && timestamp <= filterEndTimestamp) ? accentColor : greyColor;
-        });
-
-        updateChart(songsPerDayChart, songsPerDayLabels, songsPerDayData, { 
-            barColors: songsPerDayBarColors,
-            borderColors: songsPerDayBorderColors
-        });
+        // Update stacked charts
+        updateStackedChart(topSongsChart, top_songs_stacked, 20, isFiltered);
+        updateStackedChart(topArtistsChart, top_artists_stacked, 20, isFiltered);
+        updateStackedChart(songsPerHourChart, songs_per_hour_stacked, 24, isFiltered);
+        updateStackedChart(songsPerDayOfWeekChart, songs_per_day_of_week_stacked, 7, isFiltered);
         
-        const hourLabels = Array.from({length: 24}, (_, i) => i);
-        const hourData = hourLabels.map(hour => songs_per_hour[hour] || 0);
-        updateChart(songsPerHourChart, hourLabels.map(h => `${h}:00`), hourData);
+        // Special handling for the timeline chart
+        if (isFiltered) {
+            updateStackedChart(songsPerDayChart, songs_per_day_stacked, songs_per_day_stacked.labels.length, isFiltered);
+        } else {
+            const songsPerDayLabels = Object.keys(songs_per_day);
+            const songsPerDayData = Object.values(songs_per_day);
+            const accentColor = 'rgba(187, 134, 252, 1)';
+            const accentBgColor = 'rgba(187, 134, 252, 0.2)';
+            const greyColor = 'rgba(100, 100, 100, 0.5)';
+            const greyBgColor = 'rgba(100, 100, 100, 0.2)';
 
-        const dayOfWeekLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        const dayOfWeekData = dayOfWeekLabels.map((_, index) => songs_per_day_of_week[index] || 0);
-        updateChart(songsPerDayOfWeekChart, dayOfWeekLabels, dayOfWeekData);
+            const songsPerDayBarColors = songsPerDayLabels.map(dateStr => {
+                const timestamp = dateToTimestamp(new Date(dateStr));
+                return (timestamp >= filterStartTimestamp && timestamp <= filterEndTimestamp) ? accentBgColor : greyBgColor;
+            });
+            const songsPerDayBorderColors = songsPerDayLabels.map(dateStr => {
+                const timestamp = dateToTimestamp(new Date(dateStr));
+                return (timestamp >= filterStartTimestamp && timestamp <= filterEndTimestamp) ? accentColor : greyColor;
+            });
+            
+            // Ensure it's a single dataset for the non-stacked view
+            songsPerDayChart.data.labels = songsPerDayLabels;
+            songsPerDayChart.data.datasets = [{
+                label: 'Total',
+                data: songsPerDayData,
+                backgroundColor: songsPerDayBarColors,
+                borderColor: songsPerDayBorderColors,
+                borderWidth: 1
+            }];
+            songsPerDayChart.update();
+        }
 
-        renderList(allSongsList, allSongs, songSearchInput.value, 'song');
-        renderList(allArtistsList, allArtists, artistSearchInput.value, 'artist');
-        renderPeriodicTable('weekly-top-songs-card', top_songs_weekly, 'week');
-        renderPeriodicTable('monthly-top-songs-card', top_songs_monthly, 'month');
+        renderList(allSongsList, allSongs, songSearchInput.value, 'song', historyFilters);
+        renderList(allArtistsList, allArtists, artistSearchInput.value, 'artist', historyFilters);
+        renderPeriodicTable('weekly-top-songs-card', top_songs_weekly, 'week', historyFilters);
+        renderPeriodicTable('monthly-top-songs-card', top_songs_monthly, 'month', historyFilters);
         
         resetAndLoadHistory();
+    }
+
+    function updateStackedChart(chart, stackedData, slice, isFiltered) {
+        if (!chart) return;
+
+        const redColor = 'rgba(207, 102, 121, 1)';
+        const greyColor = 'rgba(100, 100, 100, 0.5)';
+        const accentColor = 'rgba(187, 134, 252, 1)';
+
+        if (isFiltered) {
+            chart.data.labels = stackedData.labels.slice(0, slice);
+            chart.data.datasets = [
+                {
+                    label: 'Filtered',
+                    data: stackedData.datasets[0].data.slice(0, slice),
+                    backgroundColor: redColor,
+                    borderColor: redColor,
+                    borderWidth: 1
+                },
+                {
+                    label: 'Other',
+                    data: stackedData.datasets[1].data.slice(0, slice),
+                    backgroundColor: greyColor,
+                    borderColor: greyColor,
+                    borderWidth: 1
+                }
+            ];
+        } else {
+            // If not filtered, show a normal, non-stacked chart with a single dataset
+            const combinedData = stackedData.datasets[0].data.map((d, i) => d + stackedData.datasets[1].data[i]);
+            chart.data.labels = stackedData.labels.slice(0, slice);
+            chart.data.datasets = [{
+                label: 'Total',
+                data: combinedData.slice(0, slice),
+                backgroundColor: accentColor,
+                borderColor: accentColor,
+                borderWidth: 1
+            }];
+        }
+        
+        if (chart.config.type === 'polarArea' && !isFiltered) {
+            chart.data.datasets[0].backgroundColor = generateColorPalette(chart.data.labels.length, 'accent');
+        }
+
+        chart.update();
     }
 
     function updateChart(chart, labels, data, options = {}) {
         if (!chart) return;
         chart.data.labels = labels;
-        chart.data.datasets.forEach((dataset) => { 
-            dataset.data = data; 
-            if (options.barColors) {
-                dataset.backgroundColor = options.barColors;
-                dataset.borderColor = options.borderColors;
-            }
-        });
-        if (chart.config.type === 'polarArea') {
-            chart.data.datasets[0].backgroundColor = generateColorPalette(labels.length);
+        // This function is now only for the timeline chart, which has one dataset
+        chart.data.datasets[0].data = data; 
+        if (options.barColors) {
+            chart.data.datasets[0].backgroundColor = options.barColors;
+            chart.data.datasets[0].borderColor = options.borderColors;
         }
         chart.update();
     }
 
-    function generateColorPalette(count) {
+    function generateColorPalette(count, theme = 'accent') {
         const colors = [];
         for (let i = 0; i < count; i++) {
-            colors.push(`hsla(${(i * 360) / count}, 70%, 70%, 0.6)`);
+            if (theme === 'red') {
+                colors.push(`hsla(0, 50%, ${70 - (i * 2)}, 0.6)`);
+            } else if (theme === 'grey') {
+                colors.push(`hsla(0, 0%, ${50 - (i * 2)}, 0.4)`);
+            } else {
+                colors.push(`hsla(${(i * 360) / count}, 70%, 70%, 0.6)`);
+            }
         }
         return colors;
     }
 
-    function renderList(listElement, data, searchTerm, filterType) {
+    function renderList(listElement, data, searchTerm, filterType, activeFilters = []) {
         if (!listElement) return;
         listElement.innerHTML = '';
         const filteredData = data.filter(item => item[0].toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        const activeSongFilters = activeFilters.filter(f => f.type === 'song').map(f => f.value);
+        const activeArtistFilters = activeFilters.filter(f => f.type === 'artist').map(f => f.value);
+
         filteredData.forEach(([name, count]) => {
             const li = document.createElement('li');
             li.textContent = `${name} - ${count} views`;
             li.dataset.filterValue = name;
             li.dataset.filterType = filterType;
+
+            // Add highlighting
+            const artistName = filterType === 'song' ? name.split(' - ')[0] : name;
+            if (
+                (filterType === 'song' && activeSongFilters.includes(name)) ||
+                (activeArtistFilters.includes(artistName))
+            ) {
+                li.classList.add('highlighted');
+            }
+
             listElement.appendChild(li);
         });
     }
 
-    function renderPeriodicTable(cardId, data, periodType) {
+    function renderPeriodicTable(cardId, data, periodType, activeFilters) {
         const card = document.getElementById(cardId);
         if (!card) return;
 
@@ -221,15 +290,29 @@ document.addEventListener('DOMContentLoaded', (event) => {
             dropdown.value = currentPeriod;
             list.innerHTML = ''; // Clear previous list
 
+            const activeSongFilters = activeFilters.filter(f => f.type === 'song').map(f => f.value);
+            const activeArtistFilters = activeFilters.filter(f => f.type === 'artist').map(f => f.value);
+
             if (songs.length === 0) {
-                list.innerHTML = '<li>No matching songs found.</li>';
+                // Do nothing, leave the list empty
             } else {
                 songs.forEach(song => {
                     const li = document.createElement('li');
-                    li.dataset.song = song[0];
+                    const songName = song[0];
+                    const artistName = songName.split(' - ')[0];
+
+                    li.dataset.song = songName;
                     li.dataset.period = currentPeriod;
                     li.dataset.periodType = periodType;
-                    li.textContent = `${song[0]} (${song[1]} plays)`;
+                    li.textContent = `${songName} (${song[1]} plays)`;
+
+                    if (
+                        activeSongFilters.includes(songName) ||
+                        activeArtistFilters.includes(artistName)
+                    ) {
+                        li.classList.add('highlighted');
+                    }
+
                     list.appendChild(li);
                 });
             }
@@ -363,18 +446,21 @@ document.addEventListener('DOMContentLoaded', (event) => {
         historySearchTerm = '';
         
         renderActiveFilters();
+        updateStatsForPeriod(filterStartTimestamp, filterEndTimestamp);
         resetAndLoadHistory();
     }
 
     function removeHistoryFilter(index) {
         historyFilters.splice(index, 1);
         renderActiveFilters();
+        updateStatsForPeriod(filterStartTimestamp, filterEndTimestamp);
         resetAndLoadHistory();
     }
 
     function clearAllHistoryFilters() {
         historyFilters = [];
         renderActiveFilters();
+        updateStatsForPeriod(filterStartTimestamp, filterEndTimestamp);
         resetAndLoadHistory();
     }
 
@@ -462,6 +548,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         const startDate = new Date(startTimestamp).toISOString();
         const endDate = new Date(endTimestamp).toISOString();
+        const filtersJson = JSON.stringify(historyFilters);
 
         // Update annotations to show the greyed-out areas
         if (songsPerDayChart.options.plugins.annotation) {
@@ -476,7 +563,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         songsPerDayChart.update('none');
         updateChartControlButtons();
 
-        const resultsProxy = pyodide.globals.get('get_stats_for_period')(startDate, endDate);
+        const resultsProxy = pyodide.globals.get('get_stats_for_period')(startDate, endDate, filtersJson);
         const results = resultsProxy.toJs({ dict_converter: Object.fromEntries });
         resultsProxy.destroy();
         updateDashboard(results);
@@ -582,20 +669,29 @@ document.addEventListener('DOMContentLoaded', (event) => {
             borderWidth: 1
         };
 
-        const topChartsOptions = JSON.parse(JSON.stringify(commonOptions));
-        topChartsOptions.indexAxis = 'y';
-        topChartsOptions.scales.y.ticks.autoSkip = false;
+        // Create independent options objects for each chart to prevent conflicts
+        const topSongsOptions = JSON.parse(JSON.stringify(commonOptions));
+        topSongsOptions.indexAxis = 'y';
+        topSongsOptions.scales.y.ticks.autoSkip = false;
+        topSongsOptions.scales.x.stacked = true;
+        topSongsOptions.scales.y.stacked = true;
+
+        const topArtistsOptions = JSON.parse(JSON.stringify(commonOptions));
+        topArtistsOptions.indexAxis = 'y';
+        topArtistsOptions.scales.y.ticks.autoSkip = false;
+        topArtistsOptions.scales.x.stacked = true;
+        topArtistsOptions.scales.y.stacked = true;
 
         topSongsChart = new Chart(topSongsChartCanvas, { 
             type: 'bar', 
-            options: topChartsOptions, 
-            data: { labels: [], datasets: [{ label: 'View Count', ...barChartColors, data: [] }] } 
+            options: topSongsOptions, 
+            data: { labels: [], datasets: [] } 
         });
 
         topArtistsChart = new Chart(topArtistsChartCanvas, { 
             type: 'bar', 
-            options: topChartsOptions, 
-            data: { labels: [], datasets: [{ label: 'View Count', ...barChartColors, data: [] }] } 
+            options: topArtistsOptions, 
+            data: { labels: [], datasets: [] } 
         });
         
         songsPerDayChart = new Chart(songsPerDayChartCanvas, { 
@@ -628,7 +724,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
                         min: new Date().setFullYear(new Date().getFullYear() - 1), // Default
                         max: new Date(), // Default
                     },
-                    y: { ...commonOptions.scales.y }
+                    y: { 
+                        ...commonOptions.scales.y,
+                        stacked: true 
+                    }
                 },
                 plugins: {
                     ...commonOptions.plugins,
@@ -667,25 +766,32 @@ document.addEventListener('DOMContentLoaded', (event) => {
             data: { labels: [], datasets: [{ label: 'Songs', ...barChartColors, data: [] }] } 
         });
 
+        const polarAreaOptions = { ...commonOptions, scales: { r: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, angleLines: { color: 'rgba(255, 255, 255, 0.1)' }, pointLabels: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 14 } }, ticks: { display: false, backdropColor: 'rgba(0,0,0,0)' } } } };
+        polarAreaOptions.scales.r.stacked = true;
+
         songsPerHourChart = new Chart(songsPerHourChartCanvas, { 
             type: 'polarArea', 
-            options: { ...commonOptions, scales: { r: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, angleLines: { color: 'rgba(255, 255, 255, 0.1)' }, pointLabels: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 14 } }, ticks: { display: false, backdropColor: 'rgba(0,0,0,0)' } } } }, 
-            data: { labels: [], datasets: [{ label: 'Songs', data: [] }] } 
+            options: polarAreaOptions, 
+            data: { labels: [], datasets: [] } 
         });
+
+        const dayOfWeekOptions = { ...commonOptions };
+        dayOfWeekOptions.scales.x.stacked = true;
+        dayOfWeekOptions.scales.y.stacked = true;
 
         songsPerDayOfWeekChart = new Chart(songsPerDayOfWeekChartCanvas, { 
             type: 'bar', 
-            options: { ...commonOptions }, 
-            data: { labels: [], datasets: [{ label: 'Songs', ...barChartColors, data: [] }] } 
+            options: dayOfWeekOptions, 
+            data: { labels: [], datasets: [] } 
         });
     }
 
     // === Interactivity Setup ===
-    function chartClickHandler(event, elements, chart, filterType) {
+    function chartClickHandler(event, elements, chart, defaultFilterType) {
         if (elements.length > 0) {
             const elementIndex = elements[0].index;
             const label = chart.data.labels[elementIndex];
-            addHistoryFilter(filterType, label);
+            addHistoryFilter(defaultFilterType, label);
         }
     }
 
@@ -734,11 +840,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
 
         songSearchInput.addEventListener('input', (e) => {
-            renderList(allSongsList, allSongsData, e.target.value, 'song');
+            renderList(allSongsList, allSongsData, e.target.value, 'song', historyFilters);
         });
 
         artistSearchInput.addEventListener('input', (e) => {
-            renderList(allArtistsList, allArtistsData, e.target.value, 'artist');
+            renderList(allArtistsList, allArtistsData, e.target.value, 'artist', historyFilters);
         });
 
         historySearchInput.addEventListener('input', (e) => {

@@ -74,23 +74,26 @@ def perform_initial_analysis(history_data_proxy):
     except Exception as e:
         return {"error": f"An initial analysis error occurred: {str(e)}"}
 
-def get_stats_for_period(start_date_str, end_date_str):
+def get_stats_for_period(start_date_str, end_date_str, filters_json="[]"):
     global master_df
     if master_df is None:
         return {"error": "Initial analysis has not been performed."}
-
     try:
         start_date = pd.to_datetime(start_date_str, utc=True)
         end_date = pd.to_datetime(end_date_str, utc=True) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
         
-        mask = (master_df['time'] >= start_date) & (master_df['time'] <= end_date)
-        filtered_df = master_df.loc[mask].copy()
+        # This is the main dataframe for the selected time period
+        time_mask = (master_df['time'] >= start_date) & (master_df['time'] <= end_date)
+        period_df = master_df.loc[time_mask].copy()
+
+        # This is the more specific dataframe based on active filters (e.g., song, artist)
+        active_filter_df = apply_active_filters(period_df, filters_json)
 
         # Timeline data should always cover the full range
         songs_per_day = master_df.groupby(master_df['time'].dt.date).size()
         songs_per_day_serializable = {day.strftime('%Y-%m-%d'): count for day, count in songs_per_day.items()}
 
-        if filtered_df.empty:
+        if period_df.empty:
             return {
                 "total_videos": 0, "top_songs": {}, "top_artists": {},
                 "songs_per_day": songs_per_day_serializable,
@@ -99,21 +102,83 @@ def get_stats_for_period(start_date_str, end_date_str):
             }
         
         # All other stats are based on the filtered period
-        total_videos = len(filtered_df)
+        total_videos = len(period_df)
         
         # Create a mapping from video_id to artist_title for display
-        video_id_to_display_name = filtered_df.drop_duplicates(subset=['video_id'])[['video_id', 'artist_title']].set_index('video_id')
+        video_id_to_display_name = period_df.drop_duplicates(subset=['video_id'])[['video_id', 'artist_title']].set_index('video_id')
         
-        top_songs_by_id = filtered_df['video_id'].value_counts()
-        top_songs = top_songs_by_id.rename(index=video_id_to_display_name['artist_title']).to_dict()
+        # --- Calculate Stacked Chart Data ---
+        def get_stacked_data(full_df, filtered_df, group_by_col):
+            total_counts = full_df[group_by_col].value_counts()
+            filtered_counts = filtered_df[group_by_col].value_counts()
+            
+            # Combine the two series, fill missing values with 0, and sort by total
+            combined = pd.DataFrame({'total': total_counts, 'filtered': filtered_counts}).fillna(0)
+            combined.sort_values(by='total', ascending=False, inplace=True)
+            combined['other'] = combined['total'] - combined['filtered']
+            
+            # For display, map video_id to artist_title if needed
+            if group_by_col == 'video_id':
+                display_names = full_df.drop_duplicates(subset=['video_id'])[['video_id', 'artist_title']].set_index('video_id')
+                combined.index = combined.index.map(display_names['artist_title'])
 
-        top_artists = filtered_df['artist'].value_counts().to_dict()
+            return {
+                'labels': combined.index.tolist(),
+                'datasets': [
+                    {'label': 'Filtered', 'data': combined['filtered'].astype(int).tolist()},
+                    {'label': 'Other', 'data': combined['other'].astype(int).tolist()}
+                ]
+            }
 
-        songs_per_hour = filtered_df.groupby(filtered_df['time'].dt.hour).size()
-        songs_per_day_of_week = filtered_df.groupby(filtered_df['time'].dt.dayofweek).size()
+        top_songs_stacked = get_stacked_data(period_df, active_filter_df, 'video_id')
+        top_artists_stacked = get_stacked_data(period_df, active_filter_df, 'artist')
+
+        def get_stacked_time_data(full_df, filtered_df, time_attr):
+            total_counts = full_df.groupby(getattr(full_df['time'].dt, time_attr)).size()
+            filtered_counts = filtered_df.groupby(getattr(filtered_df['time'].dt, time_attr)).size()
+            
+            if time_attr == 'hour':
+                labels = list(range(24))
+                total_counts = total_counts.reindex(labels, fill_value=0)
+                filtered_counts = filtered_counts.reindex(labels, fill_value=0)
+            elif time_attr == 'dayofweek':
+                day_map = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                labels = day_map
+                total_counts.index = [day_map[i] for i in total_counts.index]
+                filtered_counts.index = [day_map[i] for i in filtered_counts.index]
+                total_counts = total_counts.reindex(labels, fill_value=0)
+                filtered_counts = filtered_counts.reindex(labels, fill_value=0)
+            else: # 'date'
+                all_dates = sorted(full_df.groupby(full_df['time'].dt.date).size().index.unique().tolist())
+                labels = [d.strftime('%Y-%m-%d') for d in all_dates]
+                
+                total_counts.index = total_counts.index.map(lambda d: d.strftime('%Y-%m-%d'))
+                filtered_counts.index = filtered_counts.index.map(lambda d: d.strftime('%Y-%m-%d'))
+                
+                total_counts = total_counts.reindex(labels, fill_value=0)
+                filtered_counts = filtered_counts.reindex(labels, fill_value=0)
+
+            combined = pd.DataFrame({'total': total_counts, 'filtered': filtered_counts})
+            combined['other'] = combined['total'] - combined['filtered']
+
+            return {
+                'labels': combined.index.tolist(),
+                'datasets': [
+                    {'label': 'Filtered', 'data': combined['filtered'].astype(int).tolist()},
+                    {'label': 'Other', 'data': combined['other'].astype(int).tolist()}
+                ]
+            }
+
+        songs_per_hour_stacked = get_stacked_time_data(period_df, active_filter_df, 'hour')
+        songs_per_day_of_week_stacked = get_stacked_time_data(period_df, active_filter_df, 'dayofweek')
+        songs_per_day_stacked = get_stacked_time_data(period_df, active_filter_df, 'date')
+
+        # --- Legacy data for non-stacked views (can be removed later) ---
+        top_songs = period_df['video_id'].value_counts().rename(index=video_id_to_display_name['artist_title']).to_dict()
+        top_artists = period_df['artist'].value_counts().to_dict()
         
-        top_songs_weekly_by_id = filtered_df.groupby([pd.Grouper(key='time', freq='W-MON'), 'video_id']).size()
-        top_songs_monthly_by_id = filtered_df.groupby([pd.Grouper(key='time', freq='MS'), 'video_id']).size()
+        top_songs_weekly_by_id = period_df.groupby([pd.Grouper(key='time', freq='W-MON'), 'video_id']).size()
+        top_songs_monthly_by_id = period_df.groupby([pd.Grouper(key='time', freq='MS'), 'video_id']).size()
 
         weekly_dict = {}
         for (week, video_id), count in top_songs_weekly_by_id.items():
@@ -131,21 +196,86 @@ def get_stats_for_period(start_date_str, end_date_str):
             display_name = video_id_to_display_name.loc[video_id, 'artist_title']
             monthly_dict[month_str].append([display_name, count])
 
-        songs_per_day_serializable = {day.strftime('%Y-%m-%d'): count for day, count in songs_per_day.items()}
-
         return {
             "total_videos": total_videos,
             "top_songs": top_songs,
             "top_artists": top_artists,
             "songs_per_day": songs_per_day_serializable,
-            "songs_per_hour": songs_per_hour.to_dict(),
-            "songs_per_day_of_week": songs_per_day_of_week.to_dict(),
+            "top_songs_stacked": top_songs_stacked,
+            "top_artists_stacked": top_artists_stacked,
+            "songs_per_hour_stacked": songs_per_hour_stacked,
+            "songs_per_day_of_week_stacked": songs_per_day_of_week_stacked,
+            "songs_per_day_stacked": songs_per_day_stacked,
             "top_songs_weekly": weekly_dict,
             "top_songs_monthly": monthly_dict
         }
 
     except Exception as e:
         return {"error": f"An error occurred while filtering stats: {str(e)}"}
+
+def apply_active_filters(df, filters_json):
+    """Helper function to apply JSON filters to a dataframe with OR/AND logic."""
+    filters = json.loads(filters_json)
+    if not filters:
+        return df.copy()
+
+    # Group filters by their type
+    grouped_filters = {}
+    for f in filters:
+        filter_type = f.get('type')
+        filter_value = f.get('value')
+        if not filter_type or filter_value is None:
+            continue
+        if filter_type not in grouped_filters:
+            grouped_filters[filter_type] = []
+        grouped_filters[filter_type].append(filter_value)
+
+    # Start with a mask that includes all rows
+    final_mask = pd.Series(True, index=df.index)
+
+    # Apply OR logic within each category and AND logic between categories
+    for filter_type, values in grouped_filters.items():
+        category_mask = pd.Series(False, index=df.index)
+        
+        if filter_type == 'artist':
+            category_mask = df['artist'].isin(values)
+        elif filter_type == 'song':
+            category_mask = df['artist_title'].isin(values)
+        elif filter_type == 'day':
+            dates = [pd.to_datetime(v).date() for v in values]
+            category_mask = df['time'].dt.date.isin(dates)
+        elif filter_type == 'hour':
+            hours = [int(str(v).split(':')[0]) for v in values]
+            category_mask = df['time'].dt.hour.isin(hours)
+        elif filter_type == 'dayofweek':
+            day_map = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            day_indices = [day_map.index(v) for v in values]
+            category_mask = df['time'].dt.dayofweek.isin(day_indices)
+        elif filter_type == 'song_in_period':
+            # This filter type is special and is treated as an AND with itself
+            for v in values:
+                filter_data = json.loads(v)
+                song_title = filter_data['song']
+                period_str = filter_data['period']
+                period_type = filter_data['period_type']
+                
+                song_mask = df['artist_title'] == song_title
+                
+                if period_type == 'week':
+                    start_period = pd.to_datetime(period_str, utc=True)
+                    end_period = start_period + pd.Timedelta(days=7)
+                    time_mask = (df['time'] >= start_period) & (df['time'] < end_period)
+                elif period_type == 'month':
+                    start_period = pd.to_datetime(period_str, format='%b %Y', utc=True)
+                    end_period = start_period + pd.DateOffset(months=1)
+                    time_mask = (df['time'] >= start_period) & (df['time'] < end_period)
+                
+                final_mask &= (song_mask & time_mask)
+            continue # Skip the final_mask update below
+
+        final_mask &= category_mask
+
+    return df[final_mask].copy()
 
 def get_filtered_history(start_date_str, end_date_str, page=1, page_size=50, search_term="", filters_json="[]"):
     global master_df
