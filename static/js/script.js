@@ -2,7 +2,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // === DOM Elements ===
     const historyFilesInput = document.getElementById('history-files');
     const totalVideosDiv = document.getElementById('total-videos');
+    const totalUniqueSongsDiv = document.getElementById('total-unique-songs');
     const totalArtistsDiv = document.getElementById('total-artists');
+    const filteredStatsContainer = document.getElementById('filtered-stats-container');
+    const filteredVideosDiv = document.getElementById('filtered-videos');
+    const filteredUniqueSongsDiv = document.getElementById('filtered-unique-songs');
+    const filteredArtistsDiv = document.getElementById('filtered-artists');
     const topSongsChartCanvas = document.getElementById('top-songs-chart');
     const topArtistsChartCanvas = document.getElementById('top-artists-chart');
     const loadingIndicator = document.getElementById('loading-indicator');
@@ -64,21 +69,39 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
 
         const {
-            total_videos, top_songs, top_artists, songs_per_day,
+            total_videos, unique_songs, total_artists,
+            filtered_videos, filtered_unique_songs, filtered_artists,
+            has_active_filters,
+            top_songs, top_artists, songs_per_day,
             top_songs_stacked, top_artists_stacked, 
             songs_per_hour_stacked, songs_per_day_of_week_stacked,
             songs_per_day_stacked,
             top_songs_weekly, top_songs_monthly
         } = results;
 
-        const allSongs = Object.entries(top_songs).sort((a, b) => b[1] - a[1]);
-        const allArtists = Object.entries(top_artists).sort((a, b) => b[1] - a[1]);
+        const allSongs = Object.entries(top_songs)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, count], index) => ({ name, count, rank: index + 1 }));
+        
+        const allArtists = Object.entries(top_artists)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, count], index) => ({ name, count, rank: index + 1 }));
 
         allSongsData = allSongs;
         allArtistsData = allArtists;
 
-        totalVideosDiv.textContent = `Total songs: ${total_videos}`;
-        totalArtistsDiv.textContent = `Total artists: ${top_artists_stacked.labels.length}`;
+        totalVideosDiv.textContent = `Total Plays: ${total_videos.toLocaleString()}`;
+        totalUniqueSongsDiv.textContent = `Unique Songs: ${unique_songs.toLocaleString()}`;
+        totalArtistsDiv.textContent = `Unique Artists: ${total_artists.toLocaleString()}`;
+
+        if (has_active_filters) {
+            filteredVideosDiv.textContent = `Plays in Filter: ${filtered_videos.toLocaleString()}`;
+            filteredUniqueSongsDiv.textContent = `Unique Songs in Filter: ${filtered_unique_songs.toLocaleString()}`;
+            filteredArtistsDiv.textContent = `Unique Artists in Filter: ${filtered_artists.toLocaleString()}`;
+            filteredStatsContainer.classList.remove('hidden');
+        } else {
+            filteredStatsContainer.classList.add('hidden');
+        }
 
         // --- Update Charts ---
         const isFiltered = historyFilters.length > 0;
@@ -203,22 +226,24 @@ document.addEventListener('DOMContentLoaded', (event) => {
     function renderList(listElement, data, searchTerm, filterType, activeFilters = []) {
         if (!listElement) return;
         listElement.innerHTML = '';
-        const filteredData = data.filter(item => item[0].toLowerCase().includes(searchTerm.toLowerCase()));
+        const filteredData = data.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
         
         const activeSongFilters = activeFilters.filter(f => f.type === 'song').map(f => f.value);
         const activeArtistFilters = activeFilters.filter(f => f.type === 'artist').map(f => f.value);
+        const artistsFromSongFilters = activeSongFilters.map(songName => songName.split(' - ')[0]);
 
-        filteredData.forEach(([name, count]) => {
+        filteredData.forEach(item => {
             const li = document.createElement('li');
-            li.textContent = `${name} - ${count} views`;
-            li.dataset.filterValue = name;
+            li.textContent = `${item.rank}. ${item.name} - ${item.count} views`;
+            li.dataset.filterValue = item.name;
             li.dataset.filterType = filterType;
 
             // Add highlighting
-            const artistName = filterType === 'song' ? name.split(' - ')[0] : name;
+            const artistName = filterType === 'song' ? item.name.split(' - ')[0] : item.name;
             if (
-                (filterType === 'song' && activeSongFilters.includes(name)) ||
-                (activeArtistFilters.includes(artistName))
+                (filterType === 'song' && activeSongFilters.includes(item.name)) ||
+                (activeArtistFilters.includes(artistName)) ||
+                (filterType === 'artist' && artistsFromSongFilters.includes(item.name))
             ) {
                 li.classList.add('highlighted');
             }
@@ -278,14 +303,18 @@ document.addEventListener('DOMContentLoaded', (event) => {
         searchInput.type = 'text';
         searchInput.placeholder = 'Filter songs...';
 
-        const list = document.createElement('ol');
+        const list = document.createElement('ul');
 
         // Function to update the list content
         function updateContent() {
             const currentPeriod = periods[currentIndex];
-            const songs = [...data[currentPeriod]]
-                .filter(song => song[0].toLowerCase().includes(currentSearchTerm.toLowerCase()))
-                .sort((a, b) => b[1] - a[1]);
+            
+            const rankedSongs = [...data[currentPeriod]]
+                .sort((a, b) => b[1] - a[1])
+                .map((song, index) => ({ name: song[0], count: song[1], rank: index + 1 }));
+
+            const filteredSongs = rankedSongs
+                .filter(song => song.name.toLowerCase().includes(currentSearchTerm.toLowerCase()));
             
             dropdown.value = currentPeriod;
             list.innerHTML = ''; // Clear previous list
@@ -293,18 +322,18 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const activeSongFilters = activeFilters.filter(f => f.type === 'song').map(f => f.value);
             const activeArtistFilters = activeFilters.filter(f => f.type === 'artist').map(f => f.value);
 
-            if (songs.length === 0) {
+            if (filteredSongs.length === 0) {
                 // Do nothing, leave the list empty
             } else {
-                songs.forEach(song => {
+                filteredSongs.forEach(song => {
                     const li = document.createElement('li');
-                    const songName = song[0];
+                    const songName = song.name;
                     const artistName = songName.split(' - ')[0];
 
                     li.dataset.song = songName;
                     li.dataset.period = currentPeriod;
                     li.dataset.periodType = periodType;
-                    li.textContent = `${songName} (${song[1]} plays)`;
+                    li.textContent = `${song.rank}. ${songName} (${song.count} plays)`;
 
                     if (
                         activeSongFilters.includes(songName) ||
@@ -534,10 +563,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
         songsPerDayChart.options.scales.x.max = totalMaxTimestamp;
         
         isAnalysisComplete = true;
-        await updateStatsForPeriod(totalMinTimestamp, totalMaxTimestamp);
         resultsDiv.classList.remove('hidden');
         historyExplorerContainer.classList.remove('hidden');
         historyControls.classList.remove('hidden');
+        await updateStatsForPeriod(totalMinTimestamp, totalMaxTimestamp);
     }
 
     async function updateStatsForPeriod(startTimestamp, endTimestamp) {

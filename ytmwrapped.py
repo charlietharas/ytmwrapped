@@ -82,6 +82,8 @@ def get_stats_for_period(start_date_str, end_date_str, filters_json="[]"):
         start_date = pd.to_datetime(start_date_str, utc=True)
         end_date = pd.to_datetime(end_date_str, utc=True) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
         
+        filters = json.loads(filters_json)
+        
         # This is the main dataframe for the selected time period
         time_mask = (master_df['time'] >= start_date) & (master_df['time'] <= end_date)
         period_df = master_df.loc[time_mask].copy()
@@ -95,15 +97,25 @@ def get_stats_for_period(start_date_str, end_date_str, filters_json="[]"):
 
         if period_df.empty:
             return {
-                "total_videos": 0, "top_songs": {}, "top_artists": {},
+                "total_videos": 0, "unique_songs": 0, "total_artists": 0,
+                "filtered_videos": 0, "filtered_unique_songs": 0, "filtered_artists": 0,
+                "top_songs": {}, "top_artists": {},
                 "songs_per_day": songs_per_day_serializable,
                 "songs_per_hour": {}, "songs_per_day_of_week": {},
-                "top_songs_weekly": {}, "top_songs_monthly": {}
+                "top_songs_weekly": {}, "top_songs_monthly": {},
+                "has_active_filters": len(filters) > 0
             }
         
         # All other stats are based on the filtered period
         total_videos = len(period_df)
+        unique_songs = period_df['video_id'].nunique()
+        total_artists = period_df['artist'].nunique()
         
+        # Stats for the actively filtered data
+        filtered_videos = len(active_filter_df)
+        filtered_unique_songs = active_filter_df['video_id'].nunique()
+        filtered_artists = active_filter_df['artist'].nunique()
+
         # Create a mapping from video_id to artist_title for display
         video_id_to_display_name = period_df.drop_duplicates(subset=['video_id'])[['video_id', 'artist_title']].set_index('video_id')
         
@@ -198,6 +210,11 @@ def get_stats_for_period(start_date_str, end_date_str, filters_json="[]"):
 
         return {
             "total_videos": total_videos,
+            "unique_songs": unique_songs,
+            "total_artists": total_artists,
+            "filtered_videos": filtered_videos,
+            "filtered_unique_songs": filtered_unique_songs,
+            "filtered_artists": filtered_artists,
             "top_songs": top_songs,
             "top_artists": top_artists,
             "songs_per_day": songs_per_day_serializable,
@@ -207,7 +224,8 @@ def get_stats_for_period(start_date_str, end_date_str, filters_json="[]"):
             "songs_per_day_of_week_stacked": songs_per_day_of_week_stacked,
             "songs_per_day_stacked": songs_per_day_stacked,
             "top_songs_weekly": weekly_dict,
-            "top_songs_monthly": monthly_dict
+            "top_songs_monthly": monthly_dict,
+            "has_active_filters": len(filters) > 0
         }
 
     except Exception as e:

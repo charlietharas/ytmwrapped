@@ -295,12 +295,12 @@ input[type="text"] {
     gap: 1rem;
 }
 
-.list-wrapper ol {
+.list-wrapper ul {
     height: 350px;
     overflow-y: auto;
     padding: 0;
     margin: 0;
-    list-style-position: inside;
+    list-style-type: none;
 }
 
 .list-wrapper li {
