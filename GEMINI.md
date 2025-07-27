@@ -53,10 +53,8 @@ The application follows a specific, stateful user flow managed by `static/js/scr
 - It serves as a source of inspiration for potential future features (some of which are listed below)
 
 ### User goals:
-- Disclaimer section somewhere (likely a different page) to provide clear information about how data is handled
-- Improved UI appearance and separation of different chart/analysis results
-- Increased interactivity, such as by clicking on charts to view details
-- Straightforward, visually engaging section to more directly explore watch history
+- Disclaimer section somewhere (likely a different page) to provide clear information about how data is handled and instructions for the process
+- Chart zoom buttons when filters are active
 - Use YouTube API and song durations for more analysis on total, average listening duration, etc.
     - User will need to input their own API key
     - Cache results locally to avoid excessive API fetches
