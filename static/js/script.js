@@ -76,7 +76,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
             top_songs_stacked, top_artists_stacked, 
             songs_per_hour_stacked, songs_per_day_of_week_stacked,
             songs_per_day_stacked,
-            top_songs_weekly, top_songs_monthly
+            top_songs_weekly, top_songs_monthly,
+            top_artists_weekly, top_artists_monthly
         } = results;
 
         const allSongs = Object.entries(top_songs)
@@ -146,8 +147,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         renderList(allSongsList, allSongs, songSearchInput.value, 'song', historyFilters);
         renderList(allArtistsList, allArtists, artistSearchInput.value, 'artist', historyFilters);
-        renderPeriodicTable('weekly-top-songs-card', top_songs_weekly, 'week', historyFilters);
-        renderPeriodicTable('monthly-top-songs-card', top_songs_monthly, 'month', historyFilters);
+        renderPeriodicTable('weekly-top-songs-card', top_songs_weekly, 'week', 'song', historyFilters);
+        renderPeriodicTable('monthly-top-songs-card', top_songs_monthly, 'month', 'song', historyFilters);
+        renderPeriodicTable('weekly-top-artists-card', top_artists_weekly, 'week', 'artist', historyFilters);
+        renderPeriodicTable('monthly-top-artists-card', top_artists_monthly, 'month', 'artist', historyFilters);
         
         resetAndLoadHistory();
     }
@@ -252,7 +255,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         });
     }
 
-    function renderPeriodicTable(cardId, data, periodType, activeFilters) {
+    function renderPeriodicTable(cardId, data, periodType, itemType, activeFilters) {
         const card = document.getElementById(cardId);
         if (!card) return;
 
@@ -263,7 +266,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         // Add the description
         const description = document.createElement('p');
         description.className = 'card-description';
-        description.textContent = `Your top track for each ${periodType}.`;
+        description.textContent = `Your top ${itemType} for each ${periodType}.`;
         contentContainer.appendChild(description);
 
         const periods = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
@@ -301,7 +304,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
-        searchInput.placeholder = 'Filter songs...';
+        searchInput.placeholder = `Filter ${itemType}s...`;
 
         const list = document.createElement('ul');
 
@@ -309,12 +312,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
         function updateContent() {
             const currentPeriod = periods[currentIndex];
             
-            const rankedSongs = [...data[currentPeriod]]
+            const rankedItems = [...data[currentPeriod]]
                 .sort((a, b) => b[1] - a[1])
-                .map((song, index) => ({ name: song[0], count: song[1], rank: index + 1 }));
+                .map((item, index) => ({ name: item[0], count: item[1], rank: index + 1 }));
 
-            const filteredSongs = rankedSongs
-                .filter(song => song.name.toLowerCase().includes(currentSearchTerm.toLowerCase()));
+            const filteredItems = rankedItems
+                .filter(item => item.name.toLowerCase().includes(currentSearchTerm.toLowerCase()));
             
             dropdown.value = currentPeriod;
             list.innerHTML = ''; // Clear previous list
@@ -322,21 +325,22 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const activeSongFilters = activeFilters.filter(f => f.type === 'song').map(f => f.value);
             const activeArtistFilters = activeFilters.filter(f => f.type === 'artist').map(f => f.value);
 
-            if (filteredSongs.length === 0) {
+            if (filteredItems.length === 0) {
                 // Do nothing, leave the list empty
             } else {
-                filteredSongs.forEach(song => {
+                filteredItems.forEach(item => {
                     const li = document.createElement('li');
-                    const songName = song.name;
-                    const artistName = songName.split(' - ')[0];
+                    const itemName = item.name;
+                    const artistName = itemType === 'song' ? itemName.split(' - ')[0] : itemName;
 
-                    li.dataset.song = songName;
+                    li.dataset.filterType = itemType;
+                    li.dataset.filterValue = itemName;
                     li.dataset.period = currentPeriod;
                     li.dataset.periodType = periodType;
-                    li.textContent = `${song.rank}. ${songName} (${song.count} plays)`;
+                    li.textContent = `${item.rank}. ${itemName} (${item.count} plays)`;
 
                     if (
-                        activeSongFilters.includes(songName) ||
+                        (itemType === 'song' && activeSongFilters.includes(itemName)) ||
                         activeArtistFilters.includes(artistName)
                     ) {
                         li.classList.add('highlighted');

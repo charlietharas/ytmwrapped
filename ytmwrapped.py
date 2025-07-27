@@ -191,22 +191,38 @@ def get_stats_for_period(start_date_str, end_date_str, filters_json="[]"):
         
         top_songs_weekly_by_id = period_df.groupby([pd.Grouper(key='time', freq='W-MON'), 'video_id']).size()
         top_songs_monthly_by_id = period_df.groupby([pd.Grouper(key='time', freq='MS'), 'video_id']).size()
+        top_artists_weekly = period_df.groupby([pd.Grouper(key='time', freq='W-MON'), 'artist']).size()
+        top_artists_monthly = period_df.groupby([pd.Grouper(key='time', freq='MS'), 'artist']).size()
 
-        weekly_dict = {}
+        weekly_songs_dict = {}
         for (week, video_id), count in top_songs_weekly_by_id.items():
             week_str = week.strftime('%Y-%m-%d')
-            if week_str not in weekly_dict:
-                weekly_dict[week_str] = []
+            if week_str not in weekly_songs_dict:
+                weekly_songs_dict[week_str] = []
             display_name = video_id_to_display_name.loc[video_id, 'artist_title']
-            weekly_dict[week_str].append([display_name, count])
+            weekly_songs_dict[week_str].append([display_name, count])
 
-        monthly_dict = {}
+        monthly_songs_dict = {}
         for (month, video_id), count in top_songs_monthly_by_id.items():
             month_str = month.strftime('%b %Y')
-            if month_str not in monthly_dict:
-                monthly_dict[month_str] = []
+            if month_str not in monthly_songs_dict:
+                monthly_songs_dict[month_str] = []
             display_name = video_id_to_display_name.loc[video_id, 'artist_title']
-            monthly_dict[month_str].append([display_name, count])
+            monthly_songs_dict[month_str].append([display_name, count])
+            
+        weekly_artists_dict = {}
+        for (week, artist), count in top_artists_weekly.items():
+            week_str = week.strftime('%Y-%m-%d')
+            if week_str not in weekly_artists_dict:
+                weekly_artists_dict[week_str] = []
+            weekly_artists_dict[week_str].append([artist, count])
+
+        monthly_artists_dict = {}
+        for (month, artist), count in top_artists_monthly.items():
+            month_str = month.strftime('%b %Y')
+            if month_str not in monthly_artists_dict:
+                monthly_artists_dict[month_str] = []
+            monthly_artists_dict[month_str].append([artist, count])
 
         return {
             "total_videos": total_videos,
@@ -223,8 +239,10 @@ def get_stats_for_period(start_date_str, end_date_str, filters_json="[]"):
             "songs_per_hour_stacked": songs_per_hour_stacked,
             "songs_per_day_of_week_stacked": songs_per_day_of_week_stacked,
             "songs_per_day_stacked": songs_per_day_stacked,
-            "top_songs_weekly": weekly_dict,
-            "top_songs_monthly": monthly_dict,
+            "top_songs_weekly": weekly_songs_dict,
+            "top_songs_monthly": monthly_songs_dict,
+            "top_artists_weekly": weekly_artists_dict,
+            "top_artists_monthly": monthly_artists_dict,
             "has_active_filters": len(filters) > 0
         }
 
