@@ -106,6 +106,7 @@ Card list:
 
 - Timeline chart card (2x width): histogram of songs by day with X axis formatted by year/month (e.g. 2021 Feb Mar …)
     - This card (and many others) has a “duration toggle”: if durations data is loaded, show card toggle to switch quantity from plays to duration (in this case duration per day)
+    - This card should have an easy way (perhaps via dropdown) to select a specific month/week
 - API cards
     - Google/YouTube API integration card
         - Toggleable instructions to generate a YouTube API key
@@ -143,23 +144,6 @@ Card list:
     - All songs table
         - Searchbar
         - Duration toggle
-- Periodic section
-    - Top songs per week table
-        - Dropdown and arrows to select week
-        - Duration toggle
-        - Searchbar
-    - Top songs per month table
-        - Dropdown and arrows to select month
-        - Duration toggle
-        - Searchbar
-    - Top artists per week table
-        - Dropdown and arrows to select week
-        - Duration toggle
-        - Searchbar
-    - Top artists per month table
-        - Dropdown and arrows to select month
-        - Duration toggle
-        - Searchbar
 - MusicBrainz section
     - Genres
         - Genre breakdown pie chart (mash all with <2% into “other” category, show all with missing genre as “missing genre”)

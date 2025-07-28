@@ -74,6 +74,28 @@ def perform_initial_analysis(history_data_proxy):
     except Exception as e:
         return {"error": f"An initial analysis error occurred: {str(e)}"}
 
+def export_master_df_to_csv():
+    """Export the master dataframe to CSV string for caching."""
+    global master_df
+    if master_df is None:
+        return {"error": "No data to export"}
+    try:
+        csv_string = master_df.to_csv(index=False)
+        return {"csv": csv_string}
+    except Exception as e:
+        return {"error": f"Failed to export dataframe: {str(e)}"}
+
+def load_master_df_from_csv(csv_string):
+    """Load the master dataframe from a CSV string."""
+    global master_df
+    try:
+        from io import StringIO
+        master_df = pd.read_csv(StringIO(csv_string))
+        master_df['time'] = pd.to_datetime(master_df['time'], utc=True)
+        return {"success": True}
+    except Exception as e:
+        return {"error": f"Failed to load dataframe from CSV: {str(e)}"}
+
 def get_stats_for_period(start_date_str, end_date_str, filters_json="[]"):
     global master_df
     if master_df is None:
@@ -389,8 +411,18 @@ def get_filtered_history(start_date_str, end_date_str, page=1, page_size=50, sea
     except Exception as e:
         return {"error": f"An error occurred while fetching history: {str(e)}"}
 
+# Make functions available to JavaScript
 import js
 js.perform_initial_analysis = perform_initial_analysis
 js.get_stats_for_period = get_stats_for_period
 js.get_filtered_history = get_filtered_history
+js.export_master_df_to_csv = export_master_df_to_csv
+js.load_master_df_from_csv = load_master_df_from_csv
+
+# Also make them available in the global namespace for pyodide.globals.get()
+globals()['perform_initial_analysis'] = perform_initial_analysis
+globals()['get_stats_for_period'] = get_stats_for_period
+globals()['get_filtered_history'] = get_filtered_history
+globals()['export_master_df_to_csv'] = export_master_df_to_csv
+globals()['load_master_df_from_csv'] = load_master_df_from_csv
             
