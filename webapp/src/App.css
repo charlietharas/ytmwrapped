@@ -920,6 +920,12 @@ input[type="text"] {
 
 .upload-split-container .file-input-area {
     flex: 1;
+    height: 250px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
 }
 
 .upload-or-divider {
@@ -940,6 +946,20 @@ input[type="text"] {
 .file-input-area.dragging {
     background-color: rgba(187, 134, 252, 0.1);
     border-color: var(--color-accent);
+}
+
+.upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    text-align: center;
+}
+
+.upload-title {
+    margin-bottom: 0.5rem;
 }
 
 .upload-icon {

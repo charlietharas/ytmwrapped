@@ -57,11 +57,13 @@ const UploadScreen = ({ onFilesSelected }) => {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <p className="upload-icon">📤</p>
-            <p><strong>Upload new files</strong></p>
-            <p className="upload-subtitle">
-              Click to browse or drag and drop your watch-history.json or processed CSV files here.
-            </p>
+            <div className="upload-content">
+              <p className="upload-icon">📤</p>
+              <p className="upload-title"><strong>Upload new files</strong></p>
+              <p className="upload-subtitle">
+                Click to browse or drag and drop your watch-history.json or processed CSV files here.
+              </p>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
@@ -79,11 +81,13 @@ const UploadScreen = ({ onFilesSelected }) => {
             className="file-input-area load-previous"
             onClick={handleLoadPrevious}
           >
-            <p className="upload-icon">📂</p>
-            <p><strong>Load previous report</strong></p>
-            <p className="upload-subtitle">
-              Continue with your cached data from the last session.
-            </p>
+            <div className="upload-content">
+              <p className="upload-icon">📂</p>
+              <p className="upload-title"><strong>Load previous report</strong></p>
+              <p className="upload-subtitle">
+                Continue with your cached data from the last session.
+              </p>
+            </div>
           </div>
         </div>
       ) : (
@@ -94,11 +98,13 @@ const UploadScreen = ({ onFilesSelected }) => {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <p className="upload-icon">📤</p>
-          <p><strong>Select your YouTube Music history file(s)</strong></p>
-          <p className="upload-subtitle">
-            Click to browse or drag and drop your watch-history.json files here.
-          </p>
+          <div className="upload-content">
+            <p className="upload-icon">📤</p>
+            <p className="upload-title"><strong>Select your YouTube Music history file(s)</strong></p>
+            <p className="upload-subtitle">
+              Click to browse or drag and drop your watch-history.json files here.
+            </p>
+          </div>
           <input
             ref={fileInputRef}
             type="file"
