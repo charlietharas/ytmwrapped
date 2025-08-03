@@ -1,7 +1,10 @@
 /* === Design System: Variables === */
 :root {
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    
+    --font-sans:
+        'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+        Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol';
+
     /* Dark Theme Palette */
     --color-bg: #121212;
     --color-bg-card: #1e1e1e;
@@ -14,14 +17,17 @@
     --color-danger-hover: #ff6666;
 
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-md:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
     --border-radius: 8px;
 }
 
 /* === Base & Typography === */
-html, body {
+html,
+body {
     height: 100%;
     margin: 0;
     font-family: var(--font-sans);
@@ -35,7 +41,12 @@ html, body {
     height: 100vh;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     color: var(--color-text-primary);
     margin: 0;
 }
@@ -233,7 +244,9 @@ header h1 {
     background-color: var(--color-bg-card);
     position: relative; /* Required for overlay */
     cursor: pointer;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition:
+        background-color 0.2s,
+        border-color 0.2s;
 }
 
 .file-input-area:hover {
@@ -241,7 +254,7 @@ header h1 {
     border-color: var(--color-accent);
 }
 
-.file-input-area input[type="file"] {
+.file-input-area input[type='file'] {
     position: absolute;
     top: 0;
     left: 0;
@@ -252,15 +265,16 @@ header h1 {
 }
 
 /* Hide the default "Choose File" button that some browsers show */
-input[type="file"]::-webkit-file-upload-button {
+input[type='file']::-webkit-file-upload-button {
     visibility: hidden;
 }
-input[type="file"]::before {
+input[type='file']::before {
     content: '';
     display: none;
 }
 
-button, input[type="text"] {
+button,
+input[type='text'] {
     font-family: var(--font-sans);
     font-size: 1rem;
 }
@@ -286,7 +300,7 @@ button:hover {
     font-size: 0.9rem;
 }
 
-input[type="text"] {
+input[type='text'] {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid var(--color-border);
@@ -665,7 +679,9 @@ input[type="text"] {
 .with-history-explorer .toggle-history-explorer {
     left: calc(350px + 3rem + 1px); /* Width + padding (1.5rem x 2) + border */
     border-radius: 0 4px 4px 0;
-    top: calc(165px + 2.5rem); /* Dashboard top + history explorer padding-top */
+    top: calc(
+        165px + 2.5rem
+    ); /* Dashboard top + history explorer padding-top */
     transform: translateY(-0.25rem); /* Fine-tune alignment with h2 */
     padding: 0.3rem 0.5rem;
     font-size: 0.9rem;
@@ -712,7 +728,8 @@ input[type="text"] {
     gap: 0.5rem;
 }
 
-.active-filter, .clear-all-filters-btn {
+.active-filter,
+.clear-all-filters-btn {
     display: inline-flex;
     align-items: center;
     background-color: var(--color-border);
@@ -755,7 +772,9 @@ input[type="text"] {
 }
 
 /* === Initial State Indicators === */
-#loading-indicator, #analyzing-indicator, #file-input-container {
+#loading-indicator,
+#analyzing-indicator,
+#file-input-container {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -773,7 +792,9 @@ input[type="text"] {
     max-width: 600px;
     background-color: var(--color-bg-card);
     cursor: pointer;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition:
+        background-color 0.2s,
+        border-color 0.2s;
 }
 
 .file-input-area:hover {
@@ -803,10 +824,13 @@ input[type="text"] {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
-
 
 .hidden {
     display: none !important;
@@ -1036,7 +1060,7 @@ input[type="text"] {
     cursor: pointer;
 }
 
-.preferences-option input[type="checkbox"] {
+.preferences-option input[type='checkbox'] {
     cursor: pointer;
 }
 
@@ -1149,7 +1173,9 @@ input[type="text"] {
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition:
+        background-color 0.2s,
+        border-color 0.2s;
 }
 
 #zoom-toggle-btn:hover,

@@ -2,52 +2,54 @@ import React from 'react';
 import { useApp } from '../../hooks/useApp';
 
 const KeyStatisticsCard = ({ data }) => {
-  const { hasActiveFilters } = useApp();
-  
-  // Check if any filters are active
-  const filtersActive = hasActiveFilters();
-  const {
-    total_plays = 0,
-    total_unique_songs = 0,
-    total_unique_artists = 0,
-    filtered_plays = 0,
-    filtered_unique_songs = 0,
-    filtered_unique_artists = 0
-  } = data || {};
+    const { hasActiveFilters } = useApp();
 
-  return (
-    <div className="card">
-      <div className="card-header">
-        <h3>Key Statistics</h3>
-      </div>
-      <div className="card-content">
-        <div id="total-plays" className="stat-item">
-          Total Plays: {total_plays.toLocaleString()}
-        </div>
-        <div id="total-unique-songs" className="stat-item">
-          Unique Songs: {total_unique_songs.toLocaleString()}
-        </div>
-        <div id="total-unique-artists" className="stat-item">
-          Unique Artists: {total_unique_artists.toLocaleString()}
-        </div>
-        
-        {filtersActive && (
-          <div id="filtered-stats-container">
-            <hr />
-            <div id="filtered-plays" className="stat-item">
-              Plays in Filter: {filtered_plays.toLocaleString()}
+    // Check if any filters are active
+    const filtersActive = hasActiveFilters();
+    const {
+        total_plays = 0,
+        total_unique_songs = 0,
+        total_unique_artists = 0,
+        filtered_plays = 0,
+        filtered_unique_songs = 0,
+        filtered_unique_artists = 0,
+    } = data || {};
+
+    return (
+        <div className="card">
+            <div className="card-header">
+                <h3>Key Statistics</h3>
             </div>
-            <div id="filtered-unique-songs" className="stat-item">
-              Unique Songs in Filter: {filtered_unique_songs.toLocaleString()}
+            <div className="card-content">
+                <div id="total-plays" className="stat-item">
+                    Total Plays: {total_plays.toLocaleString()}
+                </div>
+                <div id="total-unique-songs" className="stat-item">
+                    Unique Songs: {total_unique_songs.toLocaleString()}
+                </div>
+                <div id="total-unique-artists" className="stat-item">
+                    Unique Artists: {total_unique_artists.toLocaleString()}
+                </div>
+
+                {filtersActive && (
+                    <div id="filtered-stats-container">
+                        <hr />
+                        <div id="filtered-plays" className="stat-item">
+                            Plays in Filter: {filtered_plays.toLocaleString()}
+                        </div>
+                        <div id="filtered-unique-songs" className="stat-item">
+                            Unique Songs in Filter:{' '}
+                            {filtered_unique_songs.toLocaleString()}
+                        </div>
+                        <div id="filtered-unique-artists" className="stat-item">
+                            Unique Artists in Filter:{' '}
+                            {filtered_unique_artists.toLocaleString()}
+                        </div>
+                    </div>
+                )}
             </div>
-            <div id="filtered-unique-artists" className="stat-item">
-              Unique Artists in Filter: {filtered_unique_artists.toLocaleString()}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+        </div>
+    );
 };
 
 export default KeyStatisticsCard;

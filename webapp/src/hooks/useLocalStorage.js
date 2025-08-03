@@ -1,34 +1,34 @@
 import { useState, useEffect } from 'react';
 
 function useLocalStorage(key, defaultValue) {
-  const [value, setValue] = useState(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-      console.error(`Error loading localStorage key "${key}":`, error);
-      return defaultValue;
-    }
-  });
+    const [value, setValue] = useState(() => {
+        try {
+            const item = window.localStorage.getItem(key);
+            return item ? JSON.parse(item) : defaultValue;
+        } catch (error) {
+            console.error(`Error loading localStorage key "${key}":`, error);
+            return defaultValue;
+        }
+    });
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error(`Error setting localStorage key "${key}":`, error);
-    }
-  }, [key, value]);
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+            console.error(`Error setting localStorage key "${key}":`, error);
+        }
+    }, [key, value]);
 
-  const removeValue = () => {
-    try {
-      window.localStorage.removeItem(key);
-      setValue(defaultValue);
-    } catch (error) {
-      console.error(`Error removing localStorage key "${key}":`, error);
-    }
-  };
+    const removeValue = () => {
+        try {
+            window.localStorage.removeItem(key);
+            setValue(defaultValue);
+        } catch (error) {
+            console.error(`Error removing localStorage key "${key}":`, error);
+        }
+    };
 
-  return [value, setValue, removeValue];
+    return [value, setValue, removeValue];
 }
 
 export default useLocalStorage;
