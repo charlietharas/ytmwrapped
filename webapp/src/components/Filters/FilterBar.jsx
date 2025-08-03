@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../../contexts/AppContext';
+import { useApp } from '../../hooks/useApp';
 
 const FilterBar = () => {
   const { filters, updateFilter, dateRange } = useApp();

@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useApp } from '../../contexts/AppContext';
-import { usePreferences } from '../../contexts/PreferencesContext';
+import { usePreferences } from '../../hooks/usePreferences';
 
 const UploadScreen = ({ onFilesSelected }) => {
   const { cachedCSV } = usePreferences();

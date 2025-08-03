@@ -1,20 +1,18 @@
 import React from 'react';
-import { useApp } from '../../contexts/AppContext';
+import { useApp } from '../../hooks/useApp';
 
 const KeyStatisticsCard = ({ data }) => {
-  const { filters, dateRange } = useApp();
+  const { hasActiveFilters } = useApp();
   
-  // Check if we have date filters applied
-  const hasActiveFilters = dateRange.start && dateRange.end &&
-    (filters.dateRange.start !== dateRange.start || 
-     filters.dateRange.end !== dateRange.end);
+  // Check if any filters are active
+  const filtersActive = hasActiveFilters();
   const {
-    total_videos = 0,
-    unique_songs = 0,
-    total_artists = 0,
-    filtered_videos = 0,
+    total_plays = 0,
+    total_unique_songs = 0,
+    total_unique_artists = 0,
+    filtered_plays = 0,
     filtered_unique_songs = 0,
-    filtered_artists = 0
+    filtered_unique_artists = 0
   } = data || {};
 
   return (
@@ -23,27 +21,27 @@ const KeyStatisticsCard = ({ data }) => {
         <h3>Key Statistics</h3>
       </div>
       <div className="card-content">
-        <div id="total-videos" className="stat-item">
-          Total Plays: {total_videos.toLocaleString()}
+        <div id="total-plays" className="stat-item">
+          Total Plays: {total_plays.toLocaleString()}
         </div>
         <div id="total-unique-songs" className="stat-item">
-          Unique Songs: {unique_songs.toLocaleString()}
+          Unique Songs: {total_unique_songs.toLocaleString()}
         </div>
-        <div id="total-artists" className="stat-item">
-          Unique Artists: {total_artists.toLocaleString()}
+        <div id="total-unique-artists" className="stat-item">
+          Unique Artists: {total_unique_artists.toLocaleString()}
         </div>
         
-        {hasActiveFilters && (
+        {filtersActive && (
           <div id="filtered-stats-container">
             <hr />
-            <div id="filtered-videos" className="stat-item">
-              Plays in Filter: {filtered_videos.toLocaleString()}
+            <div id="filtered-plays" className="stat-item">
+              Plays in Filter: {filtered_plays.toLocaleString()}
             </div>
             <div id="filtered-unique-songs" className="stat-item">
               Unique Songs in Filter: {filtered_unique_songs.toLocaleString()}
             </div>
-            <div id="filtered-artists" className="stat-item">
-              Unique Artists in Filter: {filtered_artists.toLocaleString()}
+            <div id="filtered-unique-artists" className="stat-item">
+              Unique Artists in Filter: {filtered_unique_artists.toLocaleString()}
             </div>
           </div>
         )}

@@ -11,7 +11,7 @@ import {
   ReferenceArea
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import { useApp } from '../../contexts/AppContext';
+import { useApp } from '../../hooks/useApp';
 import { chartColors, commonChartStyles } from '../../utils/chartColors';
 
 const TimelineCard = ({ data }) => {
@@ -21,22 +21,27 @@ const TimelineCard = ({ data }) => {
   const [isZoomed, setIsZoomed] = useState(false);
 
   const chartData = useMemo(() => {
-    if (!data?.songs_per_day) return [];
+    if (!data?.labels || !data?.datasets) return [];
     
-    return Object.entries(data.songs_per_day)
-      .map(([date, count]) => ({
+    return data.labels.map((date, index) => {
+      const filteredCount = data.datasets[0]?.data[index] || 0;
+      const otherCount = data.datasets[1]?.data[index] || 0;
+      const totalCount = filteredCount + otherCount;
+      
+      return {
         date,
         timestamp: new Date(date).getTime(),
-        count
-      }))
-      .sort((a, b) => a.timestamp - b.timestamp);
+        count: totalCount,
+        filtered: filteredCount,
+        other: otherCount
+      };
+    });
   }, [data]);
 
-  const isFiltered = dateRange.start && dateRange.end && 
-                     (filters.dateRange.start !== dateRange.start || 
-                      filters.dateRange.end !== dateRange.end);
+  const { hasActiveFilters, clearAllFilters } = useApp();
+  const isFiltered = hasActiveFilters();
 
-  // Calculate display data based on zoom state
+  // When zoomed, filter to show only the selected date range
   const displayData = useMemo(() => {
     if (!isZoomed || !isFiltered) return chartData;
     
@@ -46,16 +51,9 @@ const TimelineCard = ({ data }) => {
     );
   }, [chartData, isZoomed, isFiltered, filters.dateRange]);
 
-  // Pre-calculate bar colors for better performance
-  const barColors = useMemo(() => {
-    if (!isFiltered) return null;
-    
-    return displayData.map(entry => {
-      const inRange = entry.timestamp >= filters.dateRange.start && 
-                      entry.timestamp <= filters.dateRange.end;
-      return inRange ? chartColors.accent : 'rgba(100, 100, 100, 0.5)';
-    });
-  }, [displayData, isFiltered, filters.dateRange]);
+  // Show stacked chart when filters are active and not zoomed
+  // When zoomed, show only filtered data
+  const showStacked = isFiltered && !isZoomed;
 
   const handleMouseDown = useCallback((e) => {
     if (e && e.activeLabel) {
@@ -89,6 +87,8 @@ const TimelineCard = ({ data }) => {
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const date = format(parseISO(payload[0].payload.date), 'MMM d, yyyy');
+      const data = payload[0].payload;
+      
       return (
         <div style={{
           backgroundColor: chartColors.background.card,
@@ -100,9 +100,27 @@ const TimelineCard = ({ data }) => {
           <p style={{ margin: 0, color: chartColors.text.primary }}>
             {date}
           </p>
-          <p style={{ margin: 0, color: chartColors.accent, fontWeight: 'bold' }}>
-            {payload[0].value} plays
-          </p>
+          {showStacked ? (
+            <>
+              <p style={{ margin: 0, color: chartColors.accent, fontWeight: 'bold' }}>
+                Filtered: {data.filtered} plays
+              </p>
+              <p style={{ margin: 0, color: 'rgba(100, 100, 100, 0.8)' }}>
+                Other: {data.other} plays
+              </p>
+              <p style={{ margin: 0, color: chartColors.text.primary, fontWeight: 'bold' }}>
+                Total: {data.count} plays
+              </p>
+            </>
+          ) : isFiltered && isZoomed ? (
+            <p style={{ margin: 0, color: chartColors.accent, fontWeight: 'bold' }}>
+              Filtered: {data.filtered} plays
+            </p>
+          ) : (
+            <p style={{ margin: 0, color: chartColors.accent, fontWeight: 'bold' }}>
+              {data.count} plays
+            </p>
+          )}
         </div>
       );
     }
@@ -151,9 +169,6 @@ const TimelineCard = ({ data }) => {
       <div className="card-header">
         <h3>Timeline</h3>
         <div className="card-header-controls">
-          <select disabled title="Jump to specific time">
-            <option>TODO: Month/Week selector</option>
-          </select>
           {isFiltered && (
             <>
               <button 
@@ -165,8 +180,8 @@ const TimelineCard = ({ data }) => {
               </button>
               <button 
                 id="clear-filter-btn" 
-                title="Clear filter"
-                onClick={() => updateFilter('dateRange', dateRange)}
+                title="Clear all filters"
+                onClick={clearAllFilters}
               >
                 ↺
               </button>
@@ -217,14 +232,34 @@ const TimelineCard = ({ data }) => {
                 cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
                 isAnimationActive={false}
               />
-              <Bar 
-                dataKey="count"
-                fill={chartColors.accent}
-              >
-                {barColors && displayData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={barColors[index]} />
-                ))}
-              </Bar>
+              {showStacked ? (
+                <>
+                  <Bar 
+                    dataKey="filtered"
+                    stackId="timeline"
+                    fill={chartColors.accent}
+                    name="Filtered"
+                  />
+                  <Bar 
+                    dataKey="other"
+                    stackId="timeline"
+                    fill="rgba(100, 100, 100, 0.5)"
+                    name="Other"
+                  />
+                </>
+              ) : isFiltered && isZoomed ? (
+                <Bar 
+                  dataKey="filtered"
+                  fill={chartColors.accent}
+                  name="Filtered"
+                />
+              ) : (
+                <Bar 
+                  dataKey="count"
+                  fill={chartColors.accent}
+                  name="Plays"
+                />
+              )}
               {dragStartX !== null && dragEndX !== null && dragStartX !== dragEndX && (
                 <ReferenceArea
                   x1={dragStartX}

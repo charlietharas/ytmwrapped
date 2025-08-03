@@ -918,6 +918,10 @@ input[type="text"] {
     align-items: center;
 }
 
+.upload-split-container .file-input-area {
+    flex: 1;
+}
+
 .upload-or-divider {
     font-size: 1.2rem;
     font-weight: 600;

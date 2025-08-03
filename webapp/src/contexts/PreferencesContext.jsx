@@ -1,16 +1,7 @@
-import React, { createContext, useContext } from 'react';
+import React from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { clearDataframeCache } from '../utils/indexedDB';
-
-const PreferencesContext = createContext();
-
-export const usePreferences = () => {
-  const context = useContext(PreferencesContext);
-  if (!context) {
-    throw new Error('usePreferences must be used within a PreferencesProvider');
-  }
-  return context;
-};
+import { PreferencesContext } from './PreferencesContextDefinition';
 
 export const PreferencesProvider = ({ children }) => {
   const [showPrivacyDisclaimer, setShowPrivacyDisclaimer] = useLocalStorage('showPrivacyDisclaimer', true);

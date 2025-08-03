@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useApp } from '../../contexts/AppContext';
+import { useApp } from '../../hooks/useApp';
 import FilterBar from '../Filters/FilterBar';
 import TimelineCard from '../Cards/TimelineCard';
 import KeyStatisticsCard from '../Cards/KeyStatisticsCard';
 
-const Dashboard = () => {
+const Dashboard = ({ keyStatisticsData, timelineData }) => {
   const { analysisData } = useApp();
   const [showHistoryExplorer, setShowHistoryExplorer] = useState(true);
 
@@ -42,7 +42,20 @@ const Dashboard = () => {
         {/* Main Dashboard Content */}
         <div id="results">
           {/* Timeline Chart - Already implemented */}
-          <TimelineCard data={analysisData} />
+          <TimelineCard data={timelineData} />
+
+          {/* Month/Week Selector Card */}
+          <div className="card">
+            <div className="card-header">
+              <h3>Time Period Selector</h3>
+            </div>
+            <div className="card-content">
+              <p className="card-description">TODO: Month/Week selector</p>
+            </div>
+          </div>
+
+          {/* Key Statistics - Already implemented */}
+          <KeyStatisticsCard data={keyStatisticsData} />
 
           {/* API Cards Section */}
           <div className="card">
@@ -71,9 +84,6 @@ const Dashboard = () => {
               <button disabled>Clear MusicBrainz data (TODO)</button>
             </div>
           </div>
-
-          {/* Key Statistics - Already implemented */}
-          <KeyStatisticsCard data={analysisData} />
 
           {/* Temporal Section */}
           <h2 className="section-header">Temporal Patterns</h2>

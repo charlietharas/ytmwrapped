@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { loadPyodide } from 'pyodide';
 
 function usePyodide() {
@@ -37,7 +37,7 @@ function usePyodide() {
     initPyodide();
   }, []);
 
-  const runPythonFunction = (functionName, ...args) => {
+  const runPythonFunction = useCallback((functionName, ...args) => {
     if (!pyodide) {
       throw new Error('Pyodide is not initialized');
     }
@@ -51,7 +51,7 @@ function usePyodide() {
     const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
     resultProxy.destroy();
     return result;
-  };
+  }, [pyodide]);
 
   return {
     pyodide,

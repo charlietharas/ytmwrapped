@@ -4,6 +4,8 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qs
 
 master_df = None
+min_date = None
+max_date = None
 
 def merge_histories(histories):
     merged_history = []
@@ -36,7 +38,7 @@ def clean_data(item):
         return None, None, None, None
 
 def perform_initial_analysis(history_data_proxy):
-    global master_df
+    global master_df, min_date, max_date
     try:
         history_data = history_data_proxy.to_py()
         merged_history = merge_histories(history_data)
@@ -59,6 +61,8 @@ def perform_initial_analysis(history_data_proxy):
         df['artist_title'] = df['artist'] + ' - ' + df['title']
         
         master_df = df
+        min_date = df['time'].min().isoformat()
+        max_date = df['time'].max().isoformat()
         
         return {"success": True}
 
@@ -75,19 +79,19 @@ def export_master_df_to_csv():
         return {"error": f"Failed to export dataframe: {str(e)}"}
 
 def load_master_df_from_csv(csv_string):
-    global master_df
+    global master_df, min_date, max_date
     try:
         master_df = pd.read_csv(StringIO(csv_string))
         master_df['time'] = pd.to_datetime(master_df['time'], utc=True)
+        min_date = master_df['time'].min().isoformat()
+        max_date = master_df['time'].max().isoformat()
         return {"success": True}
     except Exception as e:
         return {"error": f"Failed to load dataframe from CSV: {str(e)}"}
 
 def get_date_range():
-    if master_df is None:
+    if master_df is None or min_date is None or max_date is None:
         return {"error": "Master dataframe not initialized."}
-    min_date = master_df['time'].min().isoformat()
-    max_date = master_df['time'].max().isoformat()
     return {"min_date": min_date, "max_date": max_date}
 
 def apply_filters(df, filters_json="[]"):
@@ -110,17 +114,23 @@ def apply_filters(df, filters_json="[]"):
             category_mask = df['artist'].isin(values)
         elif filter_type == 'song':
             category_mask = df['artist_title'].isin(values)
+        elif filter_type == 'dateRange':
+            for date_range in values:
+                start_date = pd.to_datetime(date_range['start'], utc=True)
+                end_date = pd.to_datetime(date_range['end'], utc=True)
+                range_mask = (df['time'] >= start_date) & (df['time'] <= end_date)
+                category_mask |= range_mask
         
         final_mask &= category_mask
         
     return final_mask
 
-def get_filtered_df(start_date_str, end_date_str, filters_json="[]"):
-    if master_df is None:
+def get_filtered_df(filters_json="[]"):
+    if master_df is None or min_date is None or max_date is None:
         return None
     
-    start_date = pd.to_datetime(start_date_str, utc=True)
-    end_date = pd.to_datetime(end_date_str, utc=True) + pd.Timedelta(days=1, seconds=-1)
+    start_date = pd.to_datetime(min_date, utc=True)
+    end_date = pd.to_datetime(max_date, utc=True) + pd.Timedelta(days=1, seconds=-1)
     
     time_mask = (master_df['time'] >= start_date) & (master_df['time'] <= end_date)
     period_df = master_df.loc[time_mask].copy()
@@ -133,9 +143,9 @@ def get_filtered_df(start_date_str, end_date_str, filters_json="[]"):
     
     return period_df
 
-def get_key_statistics_card_data(start_date_str, end_date_str, filters_json="[]"):
+def get_key_statistics_card_data(filters_json="[]"):
     try:
-        period_df = get_filtered_df(start_date_str, end_date_str, filters_json)
+        period_df = get_filtered_df(filters_json)
         if period_df is None or period_df.empty:
             return {"total_plays": 0, "total_unique_songs": 0, "total_unique_artists": 0,
                     "filtered_plays": 0, "filtered_unique_songs": 0, "filtered_unique_artists": 0}
@@ -153,14 +163,14 @@ def get_key_statistics_card_data(start_date_str, end_date_str, filters_json="[]"
     except Exception as e:
         return {"error": f"Error in Key Statistics: {str(e)}"}
 
-def get_timeline_card_data(start_date_str, end_date_str, filters_json="[]"):
+def get_timeline_card_data(filters_json="[]"):
     try:
-        period_df = get_filtered_df(start_date_str, end_date_str, filters_json)
+        period_df = get_filtered_df(filters_json)
         if period_df is None or period_df.empty:
              return {'labels': [], 'datasets': []}
 
-        start_date = pd.to_datetime(start_date_str, utc=True)
-        end_date = pd.to_datetime(end_date_str, utc=True)
+        start_date = pd.to_datetime(min_date, utc=True)
+        end_date = pd.to_datetime(max_date, utc=True)
 
         total_counts = period_df.groupby(period_df['time'].dt.date).size()
         filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(period_df['time'].dt.date).size()
@@ -182,9 +192,9 @@ def get_timeline_card_data(start_date_str, end_date_str, filters_json="[]"):
     except Exception as e:
         return {"error": f"Error in Timeline: {str(e)}"}
 
-def get_filtered_history(start_date_str, end_date_str, page=1, page_size=50, search_term="", filters_json="[]"):
+def get_filtered_history(page=1, page_size=50, search_term="", filters_json="[]"):
     try:
-        period_df = get_filtered_df(start_date_str, end_date_str, filters_json)
+        period_df = get_filtered_df(filters_json)
         if period_df is None:
             return {"error": "History could not be generated."}
 
