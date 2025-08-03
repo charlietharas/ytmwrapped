@@ -24,12 +24,12 @@ const HoursCard = ({ data }) => {
     if (showStacked) {
       datasets = [
         {
-          label: 'Total Plays',
+          label: 'Total',
           data: totalData,
-          backgroundColor: 'rgba(100, 100, 100, 0.5)',
+          backgroundColor: 'rgba(173, 216, 230, 0.3)',
         },
         {
-          label: 'Filtered Plays',
+          label: 'Filtered',
           data: filteredData,
           backgroundColor: chartColors.accent,
         },
@@ -73,23 +73,18 @@ const HoursCard = ({ data }) => {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: chartColors.background.card,
-            titleColor: chartColors.text.primary,
-            bodyColor: chartColors.text.primary,
-            borderColor: chartColors.border,
-            borderWidth: 1,
+            mode: 'index', intersect: false,
+            backgroundColor: chartColors.background.card, titleColor: chartColors.text.primary,
+            bodyColor: chartColors.text.primary, borderColor: chartColors.border, borderWidth: 1,
             callbacks: {
-              title: (context) => `${context[0].label}:00`,
-              label: (context) => {
-                const index = context.dataIndex;
+              title: (ctx) => `${ctx[0].label}:00`,
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}`,
+              footer: (ctx) => {
                 if (showStacked) {
-                  return [
-                    `Filtered: ${filteredData[index]}`,
-                    `Other: ${otherData[index]}`,
-                    `Total: ${totalData[index]}`
-                  ];
+                  const index = ctx[0].dataIndex;
+                  return `Total: ${totalData[index]}`;
                 }
-                return `Plays: ${context.raw}`;
+                return '';
               }
             }
           }
