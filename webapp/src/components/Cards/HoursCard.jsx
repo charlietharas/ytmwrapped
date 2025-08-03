@@ -96,7 +96,7 @@ const HoursCard = ({ data }) => {
         },
       }
     };
-  }, [data, isFiltered, isZoomed, showStacked, chartColors]);
+  }, [data, isFiltered, isZoomed, showStacked]);
 
   useEffect(() => {
     if (!chartRef.current) return;
