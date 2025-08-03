@@ -192,6 +192,36 @@ def get_timeline_card_data(filters_json="[]"):
     except Exception as e:
         return {"error": f"Error in Timeline: {str(e)}"}
 
+def get_hour_card_data(filters_json="[]", timezone="UTC"):
+    try:
+        period_df = get_filtered_df(filters_json)
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        time_tz = period_df['time'].dt.tz_convert(timezone)
+        
+        total_counts = period_df.groupby(time_tz.dt.hour).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_tz.dt.hour).size()
+        
+        all_hours = pd.Series(index=range(24), dtype=int)
+        total_counts = total_counts.reindex(all_hours.index, fill_value=0)
+        filtered_counts = filtered_counts.reindex(all_hours.index, fill_value=0)
+        
+        other_counts = total_counts - filtered_counts
+        
+        hour_labels = [f"{hour:02d}:00" for hour in range(24)]
+        
+        return {
+            'labels': hour_labels,
+            'datasets': [
+                {'label': 'Filtered', 'data': filtered_counts.astype(int).tolist()},
+                {'label': 'Other', 'data': other_counts.astype(int).tolist()}
+            ]
+        }
+            
+    except Exception as e:
+        return {"error": f"Error in Hour: {str(e)}"}
+
 def get_filtered_history(page=1, page_size=50, search_term="", filters_json="[]"):
     try:
         period_df = get_filtered_df(filters_json)
@@ -226,6 +256,7 @@ def register_functions():
         "get_date_range": get_date_range,
         "get_key_statistics_card_data": get_key_statistics_card_data,
         "get_timeline_card_data": get_timeline_card_data,
+        "get_hour_card_data": get_hour_card_data,
         "get_filtered_history": get_filtered_history,
     }
     import js

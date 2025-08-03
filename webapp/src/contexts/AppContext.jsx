@@ -7,7 +7,6 @@ export const AppProvider = ({ children }) => {
   const [currentScreen, setCurrentScreen] = useState('upload'); // 'upload', 'privacy', 'analyzing', 'dashboard'
   
   // Data state
-  const [analysisData, setAnalysisData] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   
@@ -101,8 +100,6 @@ export const AppProvider = ({ children }) => {
     setIsAnalysisComplete,
     currentScreen,
     setCurrentScreen,
-    analysisData,
-    setAnalysisData,
     historyData,
     setHistoryData,
     dateRange,

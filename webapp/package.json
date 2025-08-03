@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d dist -b deploy"
   },
   "dependencies": {
+    "chart.js": "^4.5.0",
     "date-fns": "^4.1.0",
     "gh-pages": "^6.3.0",
     "pyodide": "^0.28.0",

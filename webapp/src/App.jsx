@@ -16,7 +16,6 @@ function AppContent() {
   const { 
     currentScreen, 
     setCurrentScreen,
-    setAnalysisData,
     setDateRange,
     setIsAnalysisComplete,
     filters,
@@ -43,6 +42,7 @@ function AppContent() {
   // Store card-specific data separately
   const [keyStatisticsData, setKeyStatisticsData] = useState(null);
   const [timelineData, setTimelineData] = useState(null);
+  const [hoursData, setHoursData] = useState(null);
 
   // Common function to set up data after analysis
   const setupAnalysisData = useCallback((minDate, maxDate) => {
@@ -60,18 +60,14 @@ function AppContent() {
     
     const keyStats = runPythonFunction('get_key_statistics_card_data', filtersJson);
     const timeline = runPythonFunction('get_timeline_card_data', filtersJson);
+    const hours = runPythonFunction('get_hour_card_data', filtersJson, Intl.DateTimeFormat().resolvedOptions().timeZone);
     
     setKeyStatisticsData(keyStats);
     setTimelineData(timeline);
-    
-    // Set legacy analysisData for other components that still need it
-    setAnalysisData({
-      ...keyStats,
-      ...timeline
-    });
+    setHoursData(hours);
     
     setIsAnalysisComplete(true);
-  }, [runPythonFunction, setDateRange, setFilters, setKeyStatisticsData, setTimelineData, setAnalysisData, setIsAnalysisComplete]);
+  }, [runPythonFunction, setDateRange, setFilters, setKeyStatisticsData, setTimelineData, setHoursData, setIsAnalysisComplete]);
 
   // Update card data when filters change
   useEffect(() => {
@@ -110,23 +106,18 @@ function AppContent() {
         
         const updatedKeyStats = runPythonFunction('get_key_statistics_card_data', filtersJson);
         const updatedTimeline = runPythonFunction('get_timeline_card_data', filtersJson);
+        const updatedHours = runPythonFunction('get_hour_card_data', filtersJson, Intl.DateTimeFormat().resolvedOptions().timeZone);
         
         setKeyStatisticsData(updatedKeyStats);
         setTimelineData(updatedTimeline);
-        
-        // Update legacy analysisData for other components
-        setAnalysisData(prev => ({
-          ...prev,
-          ...updatedKeyStats,
-          ...updatedTimeline
-        }));
+        setHoursData(updatedHours);
       } catch (error) {
         console.error('Error updating card data with filters:', error);
       }
     };
     
     updateCardsWithFilters();
-  }, [filters, pyodide, currentScreen, dateRange, runPythonFunction, setKeyStatisticsData, setTimelineData, setAnalysisData]);
+  }, [filters, pyodide, currentScreen, dateRange, runPythonFunction, setKeyStatisticsData, setTimelineData, setHoursData]);
 
   const handleFilesSelected = async (files, useCache = false) => {
     if (useCache && cachedCSV) {
@@ -280,7 +271,8 @@ function AppContent() {
             {currentScreen === 'dashboard' && (
               <Dashboard 
                 keyStatisticsData={keyStatisticsData} 
-                timelineData={timelineData} 
+                timelineData={timelineData}
+                hoursData={hoursData}
               />
             )}
           </>
