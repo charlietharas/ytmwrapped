@@ -1,9 +1,8 @@
 import React from 'react';
-import { useApp } from '../../contexts/AppContext';
+import { useApp } from '../../hooks/useApp';
 
 const FilterBar = () => {
-  const { filters, updateFilter, dateRange } = useApp();
-
+  const { filters, updateFilter, dateRange, clearAllFilters } = useApp();
   return (
     <div className="filter-bar">
       <div className="filter-group">
@@ -84,9 +83,7 @@ const FilterBar = () => {
           />
           <button 
             className="clear-all-filters-btn"
-            onClick={() => {
-              // TODO: Implement clear all filters
-            }}
+            onClick={clearAllFilters}
           >
             Clear all filters
           </button>

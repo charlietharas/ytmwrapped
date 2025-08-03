@@ -1,14 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-
-const AppContext = createContext();
-
-export const useApp = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within an AppProvider');
-  }
-  return context;
-};
+import React, { useState, useCallback, useEffect } from 'react';
+import { AppContext } from './AppContextDefinition';
 
 export const AppProvider = ({ children }) => {
   // Application state

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { usePreferences } from '../../contexts/PreferencesContext';
-import { useApp } from '../../contexts/AppContext';
+import { usePreferences } from '../../hooks/usePreferences';
+import { useApp } from '../../hooks/useApp';
 
 const PrivacyDisclaimer = () => {
   const { setShowPrivacyDisclaimer } = usePreferences();

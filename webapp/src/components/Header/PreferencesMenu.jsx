@@ -1,9 +1,9 @@
 import React from 'react';
-import { usePreferences } from '../../contexts/PreferencesContext';
-import { useApp } from '../../contexts/AppContext';
+import { usePreferences } from '../../hooks/usePreferences';
+import { useApp } from '../../hooks/useApp';
 import { clearDataframeCache } from '../../utils/indexedDB';
 
-const PreferencesMenu = ({ onClose }) => {
+const PreferencesMenu = () => {
   const {
     showPrivacyDisclaimer,
     setShowPrivacyDisclaimer,

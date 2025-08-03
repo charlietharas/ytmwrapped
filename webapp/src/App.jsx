@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
-import { AppProvider, useApp } from './contexts/AppContext';
-import { PreferencesProvider, usePreferences } from './contexts/PreferencesContext';
+import { AppProvider } from './contexts/AppContext';
+import { PreferencesProvider } from './contexts/PreferencesContext';
+import { useApp } from './hooks/useApp';
+import { usePreferences } from './hooks/usePreferences';
 import Header from './components/Header/Header';
 import PrivacyDisclaimer from './components/Screens/PrivacyDisclaimer';
 import UploadScreen from './components/Screens/UploadScreen';
 import Dashboard from './components/Screens/Dashboard';
 import LoadingIndicator from './components/LoadingIndicator/LoadingIndicator';
 import usePyodide from './hooks/usePyodide';
-import { saveDataframeCSV, loadDataframeCSV, hasDataframeCache } from './utils/indexedDB';
+import { saveDataframeCSV, loadDataframeCSV, clearDataframeCache } from './utils/indexedDB';
 
 function AppContent() {
   const { 
@@ -30,20 +32,20 @@ function AppContent() {
   } = usePreferences();
   
   const { pyodide, isLoading: isPyodideLoading, error: pyodideError, runPythonFunction } = usePyodide();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Determine initial screen based on preferences
   useEffect(() => {
     if (showPrivacyDisclaimer) {
       setCurrentScreen('privacy');
     }
-  }, []);
+  }, [showPrivacyDisclaimer, setCurrentScreen]);
 
-  // Store full dataset statistics separately
-  const [fullDataStats, setFullDataStats] = useState(null);
+  // Store card-specific data separately
+  const [keyStatisticsData, setKeyStatisticsData] = useState(null);
+  const [timelineData, setTimelineData] = useState(null);
 
   // Common function to set up data after analysis
-  const setupAnalysisData = useCallback((results, minDate, maxDate) => {
+  const setupAnalysisData = useCallback((minDate, maxDate) => {
     const minTimestamp = new Date(minDate).getTime();
     const maxTimestamp = new Date(maxDate).getTime();
     
@@ -54,57 +56,77 @@ function AppContent() {
       dateRange: { start: minTimestamp, end: maxTimestamp }
     }));
     
-    // Store full dataset statistics
-    setFullDataStats({
-      total_videos: results.total_videos,
-      unique_songs: results.unique_songs,
-      total_artists: results.total_artists
-    });
+    const filtersJson = JSON.stringify([]);
     
-    // Set analysis data with proper filtered stats
+    const keyStats = runPythonFunction('get_key_statistics_card_data', filtersJson);
+    const timeline = runPythonFunction('get_timeline_card_data', filtersJson);
+    
+    setKeyStatisticsData(keyStats);
+    setTimelineData(timeline);
+    
+    // Set legacy analysisData for other components that still need it
     setAnalysisData({
-      ...results,
-      filtered_videos: results.total_videos,
-      filtered_unique_songs: results.unique_songs,
-      filtered_artists: results.total_artists
+      ...keyStats,
+      ...timeline
     });
     
     setIsAnalysisComplete(true);
-  }, []);
+  }, [runPythonFunction, setDateRange, setFilters, setKeyStatisticsData, setTimelineData, setAnalysisData, setIsAnalysisComplete]);
 
-  // Update filtered statistics when filters change
+  // Update card data when filters change
   useEffect(() => {
-    if (!pyodide || !dateRange.start || !dateRange.end || currentScreen !== 'dashboard' || !fullDataStats) return;
+    if (!pyodide || !dateRange.start || !dateRange.end || currentScreen !== 'dashboard') return;
     
-    // Don't update if filters match the full range
-    if (filters.dateRange.start === dateRange.start && filters.dateRange.end === dateRange.end) return;
-    
-    const updateAnalysisWithFilters = () => {
+    const updateCardsWithFilters = () => {
       try {
-        // Keep the full data statistics but update filtered ones
-        const startDate = new Date(filters.dateRange.start).toISOString();
-        const endDate = new Date(filters.dateRange.end).toISOString();
-        const filtersJson = JSON.stringify([]);
+        const activeFilters = [];
         
-        const filteredResults = runPythonFunction('get_stats_for_period', startDate, endDate, filtersJson);
+        filters.songs.forEach(song => activeFilters.push({ type: 'song', value: song }));
+        filters.artists.forEach(artist => activeFilters.push({ type: 'artist', value: artist }));
+        filters.hours.forEach(hour => activeFilters.push({ type: 'hour', value: hour }));
+        filters.daysOfWeek.forEach(day => activeFilters.push({ type: 'dayOfWeek', value: day }));
+        filters.months.forEach(month => activeFilters.push({ type: 'month', value: month }));
+        filters.years.forEach(year => activeFilters.push({ type: 'year', value: year }));
+        filters.genres.forEach(genre => activeFilters.push({ type: 'genre', value: genre }));
         
-        // Merge full stats with filtered stats
+        if (filters.durationRange.min !== null || filters.durationRange.max !== null) {
+          activeFilters.push({ type: 'duration', value: filters.durationRange });
+        }
+        if (filters.releaseYearRange.min !== null || filters.releaseYearRange.max !== null) {
+          activeFilters.push({ type: 'releaseYear', value: filters.releaseYearRange });
+        }
+        
+        if (filters.dateRange.start !== dateRange.start || filters.dateRange.end !== dateRange.end) {
+          activeFilters.push({ 
+            type: 'dateRange', 
+            value: { 
+              start: new Date(filters.dateRange.start).toISOString(), 
+              end: new Date(filters.dateRange.end).toISOString()
+            }
+          });
+        }
+        
+        const filtersJson = JSON.stringify(activeFilters);
+        
+        const updatedKeyStats = runPythonFunction('get_key_statistics_card_data', filtersJson);
+        const updatedTimeline = runPythonFunction('get_timeline_card_data', filtersJson);
+        
+        setKeyStatisticsData(updatedKeyStats);
+        setTimelineData(updatedTimeline);
+        
+        // Update legacy analysisData for other components
         setAnalysisData(prev => ({
-          ...filteredResults,
-          total_videos: fullDataStats.total_videos,
-          unique_songs: fullDataStats.unique_songs,
-          total_artists: fullDataStats.total_artists,
-          filtered_videos: filteredResults.total_videos,
-          filtered_unique_songs: filteredResults.unique_songs,
-          filtered_artists: filteredResults.total_artists
+          ...prev,
+          ...updatedKeyStats,
+          ...updatedTimeline
         }));
       } catch (error) {
-        console.error('Error updating analysis:', error);
+        console.error('Error updating card data with filters:', error);
       }
     };
     
-    updateAnalysisWithFilters();
-  }, [filters.dateRange, pyodide, currentScreen, fullDataStats, dateRange]);
+    updateCardsWithFilters();
+  }, [filters, pyodide, currentScreen, dateRange, runPythonFunction, setKeyStatisticsData, setTimelineData, setAnalysisData]);
 
   const handleFilesSelected = async (files, useCache = false) => {
     if (useCache && cachedCSV) {
@@ -116,8 +138,7 @@ function AppContent() {
       
       // Load from cache
       setCurrentScreen('analyzing');
-      setIsAnalyzing(true);
-      
+            
       try {
         // First check if we have the dataframe CSV cached
         const cachedDataframeCSV = await loadDataframeCSV();
@@ -129,20 +150,20 @@ function AppContent() {
           }
         }
         
-        // Extract date range from the songs_per_day data
-        const dates = Object.keys(cachedCSV.songs_per_day || {}).sort();
-        if (dates.length > 0) {
-          setupAnalysisData(cachedCSV, dates[0], dates[dates.length - 1]);
-          setCurrentScreen('dashboard');
-        } else {
-          throw new Error('No data found in cache');
+        // Get date range from Python after loading dataframe
+        const dateRangeResult = runPythonFunction('get_date_range');
+        if (dateRangeResult.error) {
+          throw new Error(dateRangeResult.error);
         }
+        
+        setupAnalysisData(dateRangeResult.min_date, dateRangeResult.max_date);
+        setCurrentScreen('dashboard');
       } catch (error) {
         console.error('Error loading from cache:', error);
         alert('Error loading cached data. Please upload files again.');
         setCurrentScreen('upload');
-      } finally {
-        setIsAnalyzing(false);
+        clearDataframeCache();
+        setCachedCSV(null);
       }
       return;
     }
@@ -150,8 +171,7 @@ function AppContent() {
     if (!files || files.length === 0) return;
 
     setCurrentScreen('analyzing');
-    setIsAnalyzing(true);
-
+    
     try {
       let historyData = [];
       
@@ -160,8 +180,7 @@ function AppContent() {
         // TODO: Implement CSV import
         alert('CSV import not yet implemented');
         setCurrentScreen('upload');
-        setIsAnalyzing(false);
-        return;
+                return;
       }
 
       // Process JSON files
@@ -173,8 +192,7 @@ function AppContent() {
         } catch (e) {
           alert(`Error parsing ${file.name}: ${e.message}`);
           setCurrentScreen('upload');
-          setIsAnalyzing(false);
-          return;
+                    return;
         }
       }
 
@@ -184,22 +202,27 @@ function AppContent() {
       if (initialResults.error) {
         alert(`Analysis Error: ${initialResults.error}`);
         setCurrentScreen('upload');
-        setIsAnalyzing(false);
-        return;
+                return;
       }
 
-      const { min_date, max_date } = initialResults;
+      // Get date range from the loaded dataframe
+      const dateRangeResult = runPythonFunction('get_date_range');
+      if (dateRangeResult.error) {
+        alert(`Date Range Error: ${dateRangeResult.error}`);
+        setCurrentScreen('upload');
+                return;
+      }
       
-      // Get full stats for the period
-      const filtersJson = JSON.stringify([]);
-      const results = runPythonFunction('get_stats_for_period', min_date, max_date, filtersJson);
+      const { min_date, max_date } = dateRangeResult;
       
       // Use common setup function
-      setupAnalysisData(results, min_date, max_date);
+      setupAnalysisData(min_date, max_date);
       
-      // Cache if enabled
+      // Cache if enabled - cache the processed CSV from key statistics
       if (cacheProcessedCSV) {
-        setCachedCSV(results);
+        const filtersJson = JSON.stringify([]);
+        const keyStatsForCache = runPythonFunction('get_key_statistics_card_data', filtersJson);
+        setCachedCSV(keyStatsForCache);
         
         // Also cache the master dataframe as CSV
         const csvExport = runPythonFunction('export_master_df_to_csv');
@@ -213,8 +236,7 @@ function AppContent() {
       console.error('Analysis error:', error);
       alert(`Error during analysis: ${error.message}`);
       setCurrentScreen('upload');
-    } finally {
-      setIsAnalyzing(false);
+      setCachedCSV(null);
     }
   };
 
@@ -255,7 +277,12 @@ function AppContent() {
                 subMessage="This may take a few moments for large history files."
               />
             )}
-            {currentScreen === 'dashboard' && <Dashboard />}
+            {currentScreen === 'dashboard' && (
+              <Dashboard 
+                keyStatisticsData={keyStatisticsData} 
+                timelineData={timelineData} 
+              />
+            )}
           </>
         )}
       </main>
