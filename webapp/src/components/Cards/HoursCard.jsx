@@ -30,12 +30,16 @@ const HoursCard = ({ data }) => {
                 {
                     label: 'Total',
                     data: totalData,
-                    backgroundColor: 'rgba(173, 216, 230, 0.3)',
+                    backgroundColor: 'rgba(100, 100, 100, 0.5)',
+                    borderColor: 'rgba(100, 100, 100, 0.5)',
+                    borderWidth: 1,
                 },
                 {
                     label: 'Filtered',
                     data: filteredData,
                     backgroundColor: chartColors.accent,
+                    borderColor: chartColors.accent,
+                    borderWidth: 1,
                 },
             ];
         } else {
@@ -59,6 +63,11 @@ const HoursCard = ({ data }) => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'r',
+                    intersect: false,
+                },
                 scales: {
                     r: {
                         grid: {
@@ -89,7 +98,17 @@ const HoursCard = ({ data }) => {
                         borderWidth: 1,
                         callbacks: {
                             title: (ctx) => `${ctx[0].label}:00`,
-                            label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}`,
+                            label: (ctx) => {
+                                if (showStacked) {
+                                    const index = ctx.dataIndex;
+                                    if (ctx.dataset.label === 'Total') {
+                                        return `Other: ${totalData[index] - filteredData[index]}`;
+                                    } else {
+                                        return `Filtered: ${ctx.raw}`;
+                                    }
+                                }
+                                return `Plays: ${ctx.raw}`;
+                            },
                             footer: (ctx) => {
                                 if (showStacked) {
                                     const index = ctx[0].dataIndex;
