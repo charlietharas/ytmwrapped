@@ -94,20 +94,13 @@ def get_date_range():
         return {"error": "Master dataframe not initialized."}
     return {"min_date": min_date, "max_date": max_date}
 
-def apply_filters(df, filters_json="[]"):
-    filters = json.loads(filters_json)
+def apply_filters(df, filters):
     if not filters:
         return pd.Series(True, index=df.index)
 
     final_mask = pd.Series(True, index=df.index)
-    
-    grouped_filters = {}
-    for f in filters:
-        filter_type, filter_value = f.get('type'), f.get('value')
-        if filter_type and filter_value is not None:
-            grouped_filters.setdefault(filter_type, []).append(filter_value)
 
-    for filter_type, values in grouped_filters.items():
+    for filter_type, values in filters.items():
         if not values: continue
         category_mask = pd.Series(False, index=df.index)
         if filter_type == 'artist':
@@ -125,27 +118,45 @@ def apply_filters(df, filters_json="[]"):
         
     return final_mask
 
-def get_filtered_df(filters_json="[]"):
+def get_filtered_df(filters_json="[]", filter_by_date=True):
     if master_df is None or min_date is None or max_date is None:
         return None
-    
+
+    filters = json.loads(filters_json)
+    grouped_filters = {}
+    for f in filters:
+        filter_type, filter_value = f.get('type'), f.get('value')
+        if filter_type and filter_value is not None:
+            grouped_filters.setdefault(filter_type, []).append(filter_value)
+
     start_date = pd.to_datetime(min_date, utc=True)
     end_date = pd.to_datetime(max_date, utc=True) + pd.Timedelta(days=1, seconds=-1)
-    
+
+    if filter_by_date:
+        found_date_range = False
+        for filter_type, values in grouped_filters.items():
+            if found_date_range: break
+            if filter_type == 'dateRange':
+                for date_range in values:
+                    start_date = pd.to_datetime(date_range['start'], utc=True)
+                    end_date = pd.to_datetime(date_range['end'], utc=True)
+                    found_date_range = True
+                    break
+
     time_mask = (master_df['time'] >= start_date) & (master_df['time'] <= end_date)
     period_df = master_df.loc[time_mask].copy()
 
     if period_df.empty:
         return period_df
 
-    filter_mask = apply_filters(period_df, filters_json)
+    filter_mask = apply_filters(period_df, grouped_filters)
     period_df['matches_filter'] = filter_mask.astype(int)
     
     return period_df
 
 def get_key_statistics_card_data(filters_json="[]"):
     try:
-        period_df = get_filtered_df(filters_json)
+        period_df = get_filtered_df(filters_json, filter_by_date=False)
         if period_df is None or period_df.empty:
             return {"total_plays": 0, "total_unique_songs": 0, "total_unique_artists": 0,
                     "filtered_plays": 0, "filtered_unique_songs": 0, "filtered_unique_artists": 0}
@@ -165,7 +176,7 @@ def get_key_statistics_card_data(filters_json="[]"):
 
 def get_timeline_card_data(filters_json="[]"):
     try:
-        period_df = get_filtered_df(filters_json)
+        period_df = get_filtered_df(filters_json, filter_by_date=False)
         if period_df is None or period_df.empty:
              return {'labels': [], 'datasets': []}
 
@@ -192,7 +203,37 @@ def get_timeline_card_data(filters_json="[]"):
     except Exception as e:
         return {"error": f"Error in Timeline: {str(e)}"}
 
-def get_filtered_history(page=1, page_size=50, search_term="", filters_json="[]"):
+def get_hour_card_data(filters_json="[]", timezone="UTC"):
+    try:
+        period_df = get_filtered_df(filters_json)
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        time_tz = period_df['time'].dt.tz_convert(timezone)
+        
+        total_counts = period_df.groupby(time_tz.dt.hour).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_tz.dt.hour).size()
+        
+        all_hours = pd.Series(index=range(24), dtype=int)
+        total_counts = total_counts.reindex(all_hours.index, fill_value=0)
+        filtered_counts = filtered_counts.reindex(all_hours.index, fill_value=0)
+        
+        other_counts = total_counts - filtered_counts
+        
+        hour_labels = [f"{hour:02d}:00" for hour in range(24)]
+        
+        return {
+            'labels': hour_labels,
+            'datasets': [
+                {'label': 'Filtered', 'data': filtered_counts.astype(int).tolist()},
+                {'label': 'Other', 'data': other_counts.astype(int).tolist()}
+            ]
+        }
+            
+    except Exception as e:
+        return {"error": f"Error in Hour: {str(e)}"}
+
+def get_filtered_history(filters_json="[]", search_term="", page=1, page_size=50):
     try:
         period_df = get_filtered_df(filters_json)
         if period_df is None:
@@ -226,6 +267,7 @@ def register_functions():
         "get_date_range": get_date_range,
         "get_key_statistics_card_data": get_key_statistics_card_data,
         "get_timeline_card_data": get_timeline_card_data,
+        "get_hour_card_data": get_hour_card_data,
         "get_filtered_history": get_filtered_history,
     }
     import js
