@@ -22,7 +22,10 @@ const HoursFilter = () => {
         const newHours = filters.hours.includes(hour)
             ? filters.hours.filter((h) => h !== hour)
             : [...filters.hours, hour];
-        updateFilter('hours', newHours.sort((a, b) => a - b));
+        updateFilter(
+            'hours',
+            newHours.sort((a, b) => a - b)
+        );
     };
 
     useEffect(() => {
@@ -76,7 +79,10 @@ const HoursFilter = () => {
     return (
         <div className="filter-item" ref={dropdownRef}>
             <label>Hour</label>
-            <button className="filter-dropdown-trigger" onClick={toggleDropdown}>
+            <button
+                className="filter-dropdown-trigger"
+                onClick={toggleDropdown}
+            >
                 {buttonText}
             </button>
             {isOpen && (
@@ -100,4 +106,3 @@ const HoursFilter = () => {
 };
 
 export default HoursFilter;
-

@@ -132,9 +132,7 @@ const ArtistsTableCard = ({ data }) => {
                                             : ''
                                     }
                                 >
-                                    <td className="rank-cell">
-                                        {artist.rank}
-                                    </td>
+                                    <td className="rank-cell">{artist.rank}</td>
                                     <td className="name-cell">{artist.name}</td>
                                     <td className="plays-cell">
                                         {isFiltered ? (

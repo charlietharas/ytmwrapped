@@ -132,9 +132,7 @@ const SongsTableCard = ({ data }) => {
                                             : ''
                                     }
                                 >
-                                    <td className="rank-cell">
-                                        {song.rank}
-                                    </td>
+                                    <td className="rank-cell">{song.rank}</td>
                                     <td className="name-cell">{song.name}</td>
                                     <td className="plays-cell">
                                         {isFiltered ? (

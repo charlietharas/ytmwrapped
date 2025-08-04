@@ -1,4 +1,11 @@
-import React, { useState, useMemo, memo, useRef, useEffect } from 'react';
+import React, {
+    useState,
+    useMemo,
+    memo,
+    useRef,
+    useEffect,
+    useCallback,
+} from 'react';
 import * as Chart from 'chart.js';
 import { useApp } from '../../hooks/useApp';
 import { chartColors } from '../../utils/chartColors';
@@ -6,7 +13,8 @@ import { chartColors } from '../../utils/chartColors';
 Chart.Chart.register(...Chart.registerables);
 
 const HoursCard = ({ data }) => {
-    const { hasActiveFilters, clearHoursFilters, updateFilter, filters } = useApp();
+    const { hasActiveFilters, clearHoursFilters, updateFilter, filters } =
+        useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
@@ -14,19 +22,31 @@ const HoursCard = ({ data }) => {
     const isFiltered = hasActiveFilters();
     const showStacked = isFiltered && !isZoomed;
 
-    const handleChartClick = (event) => {
-        const points = chartInstance.current.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
-        if (points.length) {
-            const firstPoint = points[0];
-            const label = chartInstance.current.data.labels[firstPoint.index];
-            const hour = parseInt(label, 10);
-            
-            const newHours = filters.hours.includes(hour)
-                ? filters.hours.filter((h) => h !== hour)
-                : [...filters.hours, hour];
-            updateFilter('hours', newHours.sort((a, b) => a - b));
-        }
-    };
+    const handleChartClick = useCallback(
+        (event) => {
+            const points = chartInstance.current.getElementsAtEventForMode(
+                event,
+                'nearest',
+                { intersect: true },
+                true
+            );
+            if (points.length) {
+                const firstPoint = points[0];
+                const label =
+                    chartInstance.current.data.labels[firstPoint.index];
+                const hour = parseInt(label, 10);
+
+                const newHours = filters.hours.includes(hour)
+                    ? filters.hours.filter((h) => h !== hour)
+                    : [...filters.hours, hour];
+                updateFilter(
+                    'hours',
+                    newHours.sort((a, b) => a - b)
+                );
+            }
+        },
+        [filters.hours, updateFilter]
+    );
 
     const chartConfig = useMemo(() => {
         const labels =
@@ -138,7 +158,7 @@ const HoursCard = ({ data }) => {
                 },
             },
         };
-    }, [data, isFiltered, isZoomed, showStacked]);
+    }, [data, isFiltered, isZoomed, showStacked, handleChartClick]);
 
     useEffect(() => {
         if (!chartRef.current) return;
