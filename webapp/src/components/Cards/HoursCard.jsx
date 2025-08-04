@@ -6,7 +6,7 @@ import { chartColors } from '../../utils/chartColors';
 Chart.Chart.register(...Chart.registerables);
 
 const HoursCard = ({ data }) => {
-    const { hasActiveFilters, clearAllFilters } = useApp();
+    const { hasActiveFilters, clearDateRangeFilters } = useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
@@ -162,7 +162,7 @@ const HoursCard = ({ data }) => {
                         <button
                             id="clear-filter-btn"
                             title="Clear all filters"
-                            onClick={clearAllFilters}
+                            onClick={clearDateRangeFilters}
                         >
                             ↺
                         </button>

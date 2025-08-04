@@ -45,7 +45,7 @@ const TimelineCard = ({ data }) => {
         updateFilter,
         dateRange,
         hasActiveFilters,
-        clearAllFilters,
+        clearDateRangeFilters,
     } = useApp();
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
@@ -270,7 +270,7 @@ const TimelineCard = ({ data }) => {
                             <button
                                 id="clear-filter-btn"
                                 title="Clear all filters"
-                                onClick={clearAllFilters}
+                                onClick={clearDateRangeFilters}
                             >
                                 ↺
                             </button>

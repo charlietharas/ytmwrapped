@@ -77,6 +77,20 @@ export const AppProvider = ({ children }) => {
         });
     }, [dateRange]);
 
+    const clearDateRangeFilters = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            dateRange: { start: dateRange.start, end: dateRange.end },
+        }));
+    }, []);
+
+    const clearHoursFilters = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            hours: [],
+        }));
+    }, []);
+
     const hasActiveFilters = useCallback(
         (considerDateRange = false) => {
             return (
@@ -117,6 +131,8 @@ export const AppProvider = ({ children }) => {
         addToFilter,
         removeFromFilter,
         clearAllFilters,
+        clearDateRangeFilters,
+        clearHoursFilters,
         hasActiveFilters,
     };
 
