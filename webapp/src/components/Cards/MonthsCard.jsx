@@ -87,11 +87,6 @@ const MonthCard = ({ data }) => {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Number of Songs',
-                            color: chartColors.text.secondary,
-                        },
                         ticks: {
                             color: chartColors.text.secondary,
                         },
@@ -100,11 +95,6 @@ const MonthCard = ({ data }) => {
                         },
                     },
                     x: {
-                        title: {
-                            display: true,
-                            text: 'Month of Year',
-                            color: chartColors.text.secondary,
-                        },
                         ticks: {
                             color: chartColors.text.secondary,
                         },
@@ -215,7 +205,7 @@ const MonthCard = ({ data }) => {
             </div>
             <div className="card-content">
                 <p className="card-description">
-                    Distribution of songs listened to by month of the year
+                    When you listen to music throughout the year
                 </p>
                 <div
                     className="chart-wrapper"

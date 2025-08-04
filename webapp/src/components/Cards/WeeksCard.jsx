@@ -82,11 +82,6 @@ const WeeksCard = ({ data }) => {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Number of Songs',
-                            color: chartColors.text.secondary,
-                        },
                         ticks: {
                             color: chartColors.text.secondary,
                         },
@@ -95,11 +90,6 @@ const WeeksCard = ({ data }) => {
                         },
                     },
                     x: {
-                        title: {
-                            display: true,
-                            text: 'Day of Week',
-                            color: chartColors.text.secondary,
-                        },
                         ticks: {
                             color: chartColors.text.secondary,
                         },
@@ -210,7 +200,7 @@ const WeeksCard = ({ data }) => {
             </div>
             <div className="card-content">
                 <p className="card-description">
-                    Distribution of songs listened to by day of the week
+                    When you listen to music throughout the week
                 </p>
                 <div
                     className="chart-wrapper"

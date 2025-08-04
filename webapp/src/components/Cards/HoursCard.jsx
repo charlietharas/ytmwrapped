@@ -171,7 +171,7 @@ const HoursCard = ({ data }) => {
             </div>
             <div className="card-content">
                 <p className="card-description">
-                    When you listen to music throughout the day.
+                    When you listen to music throughout the day
                 </p>
                 <div
                     className="chart-wrapper"

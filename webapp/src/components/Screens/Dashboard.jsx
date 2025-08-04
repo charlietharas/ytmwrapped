@@ -5,8 +5,8 @@ import TimelineCard from '../Cards/TimelineCard';
 import KeyStatisticsCard from '../Cards/KeyStatisticsCard';
 import HoursCard from '../Cards/HoursCard';
 import WeeksCard from '../Cards/WeeksCard';
-import MonthCard from '../Cards/MonthCard';
-import YearCard from '../Cards/YearCard';
+import MonthCard from '../Cards/MonthsCard';
+import YearCard from '../Cards/YearsCard';
 
 const Dashboard = ({
     keyStatisticsData,
@@ -36,21 +36,24 @@ const Dashboard = ({
                 >
                     {showHistoryExplorer ? '◀' : '▶'}
                 </button>
-                {showHistoryExplorer && (
-                    <div id="history-explorer-container">
-                        <h2>History Explorer</h2>
-                        <input
-                            type="text"
-                            placeholder="Search history..."
-                            className="search-input"
-                        />
-                        <div className="history-list">
-                            <p>
-                                TODO: Implement lazy-loaded history with filters
-                            </p>
-                        </div>
+                <div
+                    id="history-explorer-container"
+                    className={
+                        showHistoryExplorer
+                            ? 'history-explorer-visible'
+                            : 'history-explorer-hidden'
+                    }
+                >
+                    <h2>History Explorer</h2>
+                    <input
+                        type="text"
+                        placeholder="Search history..."
+                        className="search-input"
+                    />
+                    <div className="history-list">
+                        <p>TODO: Implement lazy-loaded history with filters</p>
                     </div>
-                )}
+                </div>
 
                 <div id="results">
                     <TimelineCard data={timelineData} />
@@ -61,7 +64,8 @@ const Dashboard = ({
                         </div>
                         <div className="card-content">
                             <p className="card-description">
-                                TODO: Month/Week selector
+                                TODO: Month/Week/Year selector; timezone
+                                selector
                             </p>
                         </div>
                     </div>
@@ -146,7 +150,7 @@ const Dashboard = ({
                         </div>
                         <div className="card-content">
                             <p className="card-description">
-                                TODO: Column chart of most played artists
+                                TODO: Bar chart of most played artists
                             </p>
                         </div>
                     </div>
@@ -157,7 +161,7 @@ const Dashboard = ({
                         </div>
                         <div className="card-content">
                             <p className="card-description">
-                                TODO: Column chart of most played songs
+                                TODO: Bar chart of most played songs
                             </p>
                         </div>
                     </div>

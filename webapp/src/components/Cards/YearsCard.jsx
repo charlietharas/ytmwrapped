@@ -74,11 +74,6 @@ const YearCard = ({ data }) => {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Number of Songs',
-                            color: chartColors.text.secondary,
-                        },
                         ticks: {
                             color: chartColors.text.secondary,
                         },
@@ -87,11 +82,6 @@ const YearCard = ({ data }) => {
                         },
                     },
                     x: {
-                        title: {
-                            display: true,
-                            text: 'Year',
-                            color: chartColors.text.secondary,
-                        },
                         ticks: {
                             color: chartColors.text.secondary,
                         },
@@ -202,7 +192,7 @@ const YearCard = ({ data }) => {
             </div>
             <div className="card-content">
                 <p className="card-description">
-                    Distribution of songs listened to by year
+                    How much you've listened to music over the years
                 </p>
                 <div
                     className="chart-wrapper"
