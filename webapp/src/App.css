@@ -1167,11 +1167,11 @@ input[type='text'] {
 
 /* === New styles for zoom button === */
 .card-header-controls {
-    position: absolute;
-    top: 1.5rem;
-    right: 1.5rem;
     display: flex;
     gap: 0.5rem;
+    align-items: flex-start;
+    margin-top: -0.25rem;
+    margin-right: -0.25rem;
 }
 
 #zoom-toggle-btn,
@@ -1203,4 +1203,110 @@ input[type='text'] {
 #zoom-toggle-btn.hidden,
 #clear-filter-btn.hidden {
     display: none;
+}
+
+.time-selector-container {
+    margin-top: 1rem;
+}
+
+.time-selector-grid h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.time-selector-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 0.25rem;
+}
+
+.time-selector-option {
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.time-selector-option:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.time-selector-option.selected {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+    font-weight: 600;
+}
+
+.time-selector-back-btn {
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.time-selector-back-btn:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+}
+
+.time-selector-breadcrumb {
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.breadcrumb-item {
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+.breadcrumb-separator {
+    color: var(--color-text-secondary);
+    margin: 0 0.5rem;
+}
+
+.time-selector-options::-webkit-scrollbar {
+    width: 6px;
+}
+
+.time-selector-options::-webkit-scrollbar-track {
+    background: var(--color-bg);
+    border-radius: 3px;
+}
+
+.time-selector-options::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+}
+
+.time-selector-options::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-secondary);
+}
+
+.card-description.error {
+    color: var(--color-danger);
 }

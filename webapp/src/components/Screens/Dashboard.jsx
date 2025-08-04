@@ -7,6 +7,7 @@ import HoursCard from '../Cards/HoursCard';
 import WeeksCard from '../Cards/WeeksCard';
 import MonthCard from '../Cards/MonthsCard';
 import YearCard from '../Cards/YearsCard';
+import TimeSelectorCard from '../Cards/TimeSelectorCard';
 
 const Dashboard = ({
     keyStatisticsData,
@@ -58,17 +59,7 @@ const Dashboard = ({
                 <div id="results">
                     <TimelineCard data={timelineData} />
 
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>Time Period Selector</h3>
-                        </div>
-                        <div className="card-content">
-                            <p className="card-description">
-                                TODO: Month/Week/Year selector; timezone
-                                selector
-                            </p>
-                        </div>
-                    </div>
+                    <TimeSelectorCard />
 
                     <KeyStatisticsCard data={keyStatisticsData} />
 
