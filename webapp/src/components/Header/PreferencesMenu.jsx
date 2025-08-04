@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePreferences } from '../../hooks/usePreferences';
 import { useApp } from '../../hooks/useApp';
-import { clearDataframeCache } from '../../utils/indexedDB';
+import { clearDataframeCache, loadDataframeCSV } from '../../utils/indexedDB';
 
 const PreferencesMenu = () => {
     const {
@@ -134,9 +134,6 @@ const PreferencesMenu = () => {
                     disabled={!cachedCSV}
                     onClick={async () => {
                         try {
-                            const { loadDataframeCSV } = await import(
-                                '../../utils/indexedDB'
-                            );
                             const csvData = await loadDataframeCSV();
                             if (csvData) {
                                 const blob = new Blob([csvData], {
