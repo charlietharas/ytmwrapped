@@ -4,17 +4,19 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qs
 
 master_df = None
+filtered_df = None
+filtered_truncated_df = None
 min_date = None
 max_date = None
 
-def merge_histories(histories):
+def _merge_histories(histories):
     merged_history = []
     for history in histories:
         if isinstance(history, list):
             merged_history.extend(history)
     return merged_history
 
-def clean_data(item):
+def _clean_data(item):
     try:
         if (not item or 
             'header' not in item or item['header'] != 'YouTube Music' or
@@ -41,12 +43,12 @@ def perform_initial_analysis(history_data_proxy):
     global master_df, min_date, max_date
     try:
         history_data = history_data_proxy.to_py()
-        merged_history = merge_histories(history_data)
+        merged_history = _merge_histories(history_data)
         
         processed_data = [
             data for item in merged_history 
             if isinstance(item, dict) and 'time' in item 
-            and (data := clean_data(item)) and data[0] is not None
+            and (data := _clean_data(item)) and data[0] is not None
         ]
         
         if not processed_data:
@@ -94,7 +96,7 @@ def get_date_range():
         return {"error": "Master dataframe not initialized."}
     return {"min_date": min_date, "max_date": max_date}
 
-def apply_filters(df, filters):
+def _apply_filters(df, filters):
     if not filters:
         return pd.Series(True, index=df.index)
 
@@ -118,7 +120,7 @@ def apply_filters(df, filters):
         
     return final_mask
 
-def get_filtered_df(filters_json="[]", filter_by_date=True):
+def _get_filtered_df(filters_json="[]", filter_by_date=True):
     if master_df is None or min_date is None or max_date is None:
         return None
 
@@ -149,34 +151,52 @@ def get_filtered_df(filters_json="[]", filter_by_date=True):
     if period_df.empty:
         return period_df
 
-    filter_mask = apply_filters(period_df, grouped_filters)
+    filter_mask = _apply_filters(period_df, grouped_filters)
     period_df['matches_filter'] = filter_mask.astype(int)
     
     return period_df
 
-def get_key_statistics_card_data(filters_json="[]"):
+def generate_filtered_dfs(filters_json="[]", timezone="UTC"):
+    global filtered_df, filtered_truncated_df
     try:
-        period_df = get_filtered_df(filters_json, filter_by_date=False)
+        filtered_df = _get_filtered_df(filters_json, filter_by_date=False)
+        filtered_truncated_df = _get_filtered_df(filters_json)
+        
+        if filtered_df is not None and not filtered_df.empty:
+            filtered_df['time_local'] = filtered_df['time'].dt.tz_convert(timezone)
+        if filtered_truncated_df is not None and not filtered_truncated_df.empty:
+            filtered_truncated_df['time_local'] = filtered_truncated_df['time'].dt.tz_convert(timezone)
+        
+        return {"success": True}
+    except Exception as e:
+        return {"error": f"Error in generate_filtered_dfs: {str(e)}"}
+
+
+def get_key_statistics_card_data():
+    global filtered_df
+    try:
+        period_df = filtered_df
         if period_df is None or period_df.empty:
             return {"total_plays": 0, "total_unique_songs": 0, "total_unique_artists": 0,
                     "filtered_plays": 0, "filtered_unique_songs": 0, "filtered_unique_artists": 0}
 
-        filtered_df = period_df[period_df['matches_filter'] == 1]
+        period_df_filtered = period_df[period_df['matches_filter'] == 1]
         
         return {
             "total_plays": len(period_df),
             "total_unique_songs": period_df['video_id'].nunique(),
             "total_unique_artists": period_df['artist'].nunique(),
-            "filtered_plays": len(filtered_df),
-            "filtered_unique_songs": filtered_df['video_id'].nunique(),
-            "filtered_unique_artists": filtered_df['artist'].nunique(),
+            "filtered_plays": len(period_df_filtered),
+            "filtered_unique_songs": period_df_filtered['video_id'].nunique(),
+            "filtered_unique_artists": period_df_filtered['artist'].nunique(),
         }
     except Exception as e:
         return {"error": f"Error in Key Statistics: {str(e)}"}
 
-def get_timeline_card_data(filters_json="[]"):
+def get_timeline_card_data():
+    global filtered_df
     try:
-        period_df = get_filtered_df(filters_json, filter_by_date=False)
+        period_df = filtered_df
         if period_df is None or period_df.empty:
              return {'labels': [], 'datasets': []}
 
@@ -203,16 +223,17 @@ def get_timeline_card_data(filters_json="[]"):
     except Exception as e:
         return {"error": f"Error in Timeline: {str(e)}"}
 
-def get_hour_card_data(filters_json="[]", timezone="UTC"):
+def get_hour_card_data():
+    global filtered_truncated_df
     try:
-        period_df = get_filtered_df(filters_json)
+        period_df = filtered_truncated_df
         if period_df is None or period_df.empty:
             return {'labels': [], 'datasets': []}
 
-        time_tz = period_df['time'].dt.tz_convert(timezone)
+        time_local = period_df['time_local']
         
-        total_counts = period_df.groupby(time_tz.dt.hour).size()
-        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_tz.dt.hour).size()
+        total_counts = period_df.groupby(time_local.dt.hour).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.hour).size()
         
         all_hours = pd.Series(index=range(24), dtype=int)
         total_counts = total_counts.reindex(all_hours.index, fill_value=0)
@@ -220,7 +241,7 @@ def get_hour_card_data(filters_json="[]", timezone="UTC"):
         
         other_counts = total_counts - filtered_counts
         
-        hour_labels = [f"{hour:02d}:00" for hour in range(24)]
+        hour_labels = [f"{hour:02d}" for hour in range(24)]
         
         return {
             'labels': hour_labels,
@@ -233,9 +254,105 @@ def get_hour_card_data(filters_json="[]", timezone="UTC"):
     except Exception as e:
         return {"error": f"Error in Hour: {str(e)}"}
 
-def get_filtered_history(filters_json="[]", search_term="", page=1, page_size=50):
+def get_week_card_data():
+    global filtered_truncated_df
     try:
-        period_df = get_filtered_df(filters_json)
+        period_df = filtered_truncated_df
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        time_local = period_df['time_local']
+        
+        total_counts = period_df.groupby(time_local.dt.dayofweek).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.dayofweek).size()
+        
+        all_days = pd.Series(index=range(7), dtype=int)
+        total_counts = total_counts.reindex(all_days.index, fill_value=0)
+        filtered_counts = filtered_counts.reindex(all_days.index, fill_value=0)
+        
+        other_counts = total_counts - filtered_counts
+        
+        day_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] # monday=0 in pandas
+        
+        return {
+            'labels': day_labels,
+            'datasets': [
+                {'label': 'Filtered', 'data': filtered_counts.astype(int).tolist()},
+                {'label': 'Other', 'data': other_counts.astype(int).tolist()}
+            ]
+        }
+            
+    except Exception as e:
+        return {"error": f"Error in Week: {str(e)}"}
+
+def get_month_card_data():
+    global filtered_truncated_df
+    try:
+        period_df = filtered_truncated_df
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        time_local = period_df['time_local']
+        
+        total_counts = period_df.groupby(time_local.dt.month).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.month).size()
+        
+        all_months = pd.Series(index=range(1, 13), dtype=int)
+        total_counts = total_counts.reindex(all_months.index, fill_value=0)
+        filtered_counts = filtered_counts.reindex(all_months.index, fill_value=0)
+        
+        other_counts = total_counts - filtered_counts
+        
+        month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        
+        return {
+            'labels': month_labels,
+            'datasets': [
+                {'label': 'Filtered', 'data': filtered_counts.astype(int).tolist()},
+                {'label': 'Other', 'data': other_counts.astype(int).tolist()}
+            ]
+        }
+            
+    except Exception as e:
+        return {"error": f"Error in Month: {str(e)}"}
+
+def get_year_card_data():
+    global filtered_truncated_df
+    try:
+        period_df = filtered_truncated_df
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        time_local = period_df['time_local']
+        
+        total_counts = period_df.groupby(time_local.dt.year).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.year).size()
+        
+        all_years = pd.Series(index=range(time_local.dt.year.min(), time_local.dt.year.max() + 1), dtype=int)
+        total_counts = total_counts.reindex(all_years.index, fill_value=0)
+        filtered_counts = filtered_counts.reindex(all_years.index, fill_value=0)
+        
+        other_counts = total_counts - filtered_counts
+        
+        year_labels = [str(year) for year in all_years.index]
+        
+        return {
+            'labels': year_labels,
+            'datasets': [
+                {'label': 'Filtered', 'data': filtered_counts.astype(int).tolist()},
+                {'label': 'Other', 'data': other_counts.astype(int).tolist()}
+            ]
+        }
+            
+    except Exception as e:
+        return {"error": f"Error in Year: {str(e)}"}
+
+
+def get_filtered_history(search_term="", page=1, page_size=50):
+    global filtered_df
+    try:
+        period_df = filtered_df
         if period_df is None:
             return {"error": "History could not be generated."}
 
@@ -265,9 +382,13 @@ def register_functions():
         "export_master_df_to_csv": export_master_df_to_csv,
         "load_master_df_from_csv": load_master_df_from_csv,
         "get_date_range": get_date_range,
+        "generate_filtered_dfs": generate_filtered_dfs,
         "get_key_statistics_card_data": get_key_statistics_card_data,
         "get_timeline_card_data": get_timeline_card_data,
         "get_hour_card_data": get_hour_card_data,
+        "get_week_card_data": get_week_card_data,
+        "get_month_card_data": get_month_card_data,
+        "get_year_card_data": get_year_card_data,
         "get_filtered_history": get_filtered_history,
     }
     import js
