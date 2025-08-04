@@ -82,12 +82,19 @@ export const AppProvider = ({ children }) => {
             ...prev,
             dateRange: { start: dateRange.start, end: dateRange.end },
         }));
-    }, []);
+    }, [dateRange]);
 
     const clearHoursFilters = useCallback(() => {
         setFilters((prev) => ({
             ...prev,
             hours: [],
+        }));
+    }, []);
+
+    const clearWeeksFilters = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            daysOfWeek: [],
         }));
     }, []);
 
@@ -133,6 +140,7 @@ export const AppProvider = ({ children }) => {
         clearAllFilters,
         clearDateRangeFilters,
         clearHoursFilters,
+        clearWeeksFilters,
         hasActiveFilters,
     };
 

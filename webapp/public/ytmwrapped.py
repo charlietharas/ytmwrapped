@@ -156,11 +156,17 @@ def _get_filtered_df(filters_json="[]", filter_by_date=True):
     
     return period_df
 
-def generate_filtered_dfs(filters_json="[]"):
+def generate_filtered_dfs(filters_json="[]", timezone="UTC"):
     global filtered_df, filtered_truncated_df
     try:
         filtered_df = _get_filtered_df(filters_json, filter_by_date=False)
         filtered_truncated_df = _get_filtered_df(filters_json)
+        
+        if filtered_df is not None and not filtered_df.empty:
+            filtered_df['time_local'] = filtered_df['time'].dt.tz_convert(timezone)
+        if filtered_truncated_df is not None and not filtered_truncated_df.empty:
+            filtered_truncated_df['time_local'] = filtered_truncated_df['time'].dt.tz_convert(timezone)
+        
         return {"success": True}
     except Exception as e:
         return {"error": f"Error in generate_filtered_dfs: {str(e)}"}
@@ -217,17 +223,17 @@ def get_timeline_card_data():
     except Exception as e:
         return {"error": f"Error in Timeline: {str(e)}"}
 
-def get_hour_card_data(timezone="UTC"):
+def get_hour_card_data():
     global filtered_truncated_df
     try:
         period_df = filtered_truncated_df
         if period_df is None or period_df.empty:
             return {'labels': [], 'datasets': []}
 
-        time_tz = period_df['time'].dt.tz_convert(timezone)
+        time_local = period_df['time_local']
         
-        total_counts = period_df.groupby(time_tz.dt.hour).size()
-        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_tz.dt.hour).size()
+        total_counts = period_df.groupby(time_local.dt.hour).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.hour).size()
         
         all_hours = pd.Series(index=range(24), dtype=int)
         total_counts = total_counts.reindex(all_hours.index, fill_value=0)
@@ -247,6 +253,38 @@ def get_hour_card_data(timezone="UTC"):
             
     except Exception as e:
         return {"error": f"Error in Hour: {str(e)}"}
+
+def get_week_card_data():
+    global filtered_truncated_df
+    try:
+        period_df = filtered_truncated_df
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        time_local = period_df['time_local']
+        
+        total_counts = period_df.groupby(time_local.dt.dayofweek).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.dayofweek).size()
+        
+        all_days = pd.Series(index=range(7), dtype=int)
+        total_counts = total_counts.reindex(all_days.index, fill_value=0)
+        filtered_counts = filtered_counts.reindex(all_days.index, fill_value=0)
+        
+        other_counts = total_counts - filtered_counts
+        
+        day_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] # monday=0 in pandas
+        
+        return {
+            'labels': day_labels,
+            'datasets': [
+                {'label': 'Filtered', 'data': filtered_counts.astype(int).tolist()},
+                {'label': 'Other', 'data': other_counts.astype(int).tolist()}
+            ]
+        }
+            
+    except Exception as e:
+        return {"error": f"Error in Week: {str(e)}"}
+
 
 def get_filtered_history(search_term="", page=1, page_size=50):
     global filtered_df
@@ -281,11 +319,12 @@ def register_functions():
         "export_master_df_to_csv": export_master_df_to_csv,
         "load_master_df_from_csv": load_master_df_from_csv,
         "get_date_range": get_date_range,
+        "generate_filtered_dfs": generate_filtered_dfs,
         "get_key_statistics_card_data": get_key_statistics_card_data,
         "get_timeline_card_data": get_timeline_card_data,
         "get_hour_card_data": get_hour_card_data,
+        "get_week_card_data": get_week_card_data,
         "get_filtered_history": get_filtered_history,
-        "generate_filtered_dfs": generate_filtered_dfs,
     }
     import js
     for name, func in function_map.items():

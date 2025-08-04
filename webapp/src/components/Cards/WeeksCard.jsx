@@ -1,12 +1,12 @@
-import React, { useState, useMemo, memo, useRef, useEffect } from 'react';
+import React, { useMemo, memo, useRef, useEffect, useState } from 'react';
 import * as Chart from 'chart.js';
 import { useApp } from '../../hooks/useApp';
 import { chartColors } from '../../utils/chartColors';
 
 Chart.Chart.register(...Chart.registerables);
 
-const HoursCard = ({ data }) => {
-    const { hasActiveFilters, clearHoursFilters } = useApp();
+const WeeksCard = ({ data }) => {
+    const { hasActiveFilters, clearWeeksFilters } = useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
@@ -15,11 +15,21 @@ const HoursCard = ({ data }) => {
     const showStacked = isFiltered && !isZoomed;
 
     const chartConfig = useMemo(() => {
-        const labels =
-            data?.labels ||
-            Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-        const filteredData = data?.datasets?.[0]?.data || new Array(24).fill(0);
-        const otherData = data?.datasets?.[1]?.data || new Array(24).fill(0);
+        if (!data || data.error) {
+            return null;
+        }
+
+        const labels = data.labels || [
+            'Mon',
+            'Tue',
+            'Wed',
+            'Thu',
+            'Fri',
+            'Sat',
+            'Sun',
+        ];
+        const filteredData = data.datasets?.[0]?.data || new Array(7).fill(0);
+        const otherData = data.datasets?.[1]?.data || new Array(7).fill(0);
         const totalData = filteredData.map(
             (val, i) => val + (otherData[i] || 0)
         );
@@ -57,7 +67,7 @@ const HoursCard = ({ data }) => {
         }
 
         return {
-            type: 'polarArea',
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: datasets,
@@ -66,25 +76,35 @@ const HoursCard = ({ data }) => {
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: {
-                    mode: 'nearest',
-                    axis: 'r',
+                    mode: 'index',
                     intersect: false,
                 },
                 scales: {
-                    r: {
-                        grid: {
-                            color: chartColors.border,
-                            circular: true,
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Songs',
+                            color: chartColors.text.secondary,
                         },
                         ticks: {
-                            display: false,
-                        },
-                        pointLabels: {
-                            display: true,
                             color: chartColors.text.secondary,
-                            font: {
-                                size: 12,
-                            },
+                        },
+                        grid: {
+                            color: chartColors.border,
+                        },
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Day of Week',
+                            color: chartColors.text.secondary,
+                        },
+                        ticks: {
+                            color: chartColors.text.secondary,
+                        },
+                        grid: {
+                            color: chartColors.border,
                         },
                     },
                 },
@@ -99,7 +119,6 @@ const HoursCard = ({ data }) => {
                         borderColor: chartColors.border,
                         borderWidth: 1,
                         callbacks: {
-                            title: (ctx) => `${ctx[0].label}:00`,
                             label: (ctx) => {
                                 if (showStacked) {
                                     const index = ctx.dataIndex;
@@ -132,7 +151,12 @@ const HoursCard = ({ data }) => {
             chartInstance.current.destroy();
         }
 
-        chartInstance.current = new Chart.Chart(chartRef.current, chartConfig);
+        if (chartConfig) {
+            chartInstance.current = new Chart.Chart(
+                chartRef.current,
+                chartConfig
+            );
+        }
 
         return () => {
             if (chartInstance.current) {
@@ -142,10 +166,25 @@ const HoursCard = ({ data }) => {
         };
     }, [chartConfig]);
 
+    if (!data || data.error) {
+        return (
+            <div className="card">
+                <div className="card-header">
+                    <h3>Songs per Day of Week</h3>
+                </div>
+                <div className="card-content">
+                    <p className="card-description">
+                        {data?.error || 'No data available'}
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="card">
             <div className="card-header">
-                <h3>Songs per Hour of Day</h3>
+                <h3>Songs per Day of Week</h3>
                 {isFiltered && (
                     <div className="card-header-controls">
                         <button
@@ -162,7 +201,7 @@ const HoursCard = ({ data }) => {
                         <button
                             id="clear-filter-btn"
                             title="Clear all filters"
-                            onClick={clearHoursFilters}
+                            onClick={clearWeeksFilters}
                         >
                             ↺
                         </button>
@@ -171,7 +210,7 @@ const HoursCard = ({ data }) => {
             </div>
             <div className="card-content">
                 <p className="card-description">
-                    When you listen to music throughout the day.
+                    Distribution of songs listened to by day of the week
                 </p>
                 <div
                     className="chart-wrapper"
@@ -184,4 +223,4 @@ const HoursCard = ({ data }) => {
     );
 };
 
-export default memo(HoursCard);
+export default memo(WeeksCard);

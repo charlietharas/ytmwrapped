@@ -4,8 +4,14 @@ import FilterBar from '../Filters/FilterBar';
 import TimelineCard from '../Cards/TimelineCard';
 import KeyStatisticsCard from '../Cards/KeyStatisticsCard';
 import HoursCard from '../Cards/HoursCard';
+import WeeksCard from '../Cards/WeeksCard';
 
-const Dashboard = ({ keyStatisticsData, timelineData, hoursData }) => {
+const Dashboard = ({
+    keyStatisticsData,
+    timelineData,
+    hoursData,
+    weeksData,
+}) => {
     const { isAnalysisComplete } = useApp();
     const [showHistoryExplorer, setShowHistoryExplorer] = useState(true);
 
@@ -104,17 +110,7 @@ const Dashboard = ({ keyStatisticsData, timelineData, hoursData }) => {
 
                     <HoursCard data={hoursData} />
 
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>Songs per Day of Week</h3>
-                        </div>
-                        <div className="card-content">
-                            <p className="card-description">
-                                TODO: Bar chart showing listening patterns by
-                                day of week
-                            </p>
-                        </div>
-                    </div>
+                    <WeeksCard data={weeksData} />
 
                     <div className="card">
                         <div className="card-header">

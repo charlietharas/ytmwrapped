@@ -52,6 +52,45 @@ function AppContent() {
     const [keyStatisticsData, setKeyStatisticsData] = useState(null);
     const [timelineData, setTimelineData] = useState(null);
     const [hoursData, setHoursData] = useState(null);
+    const [weeksData, setWeeksData] = useState(null);
+
+    const updateCardsWithFilters = useCallback(
+        async (filtersJson) => {
+            try {
+                await runPythonFunction(
+                    'generate_filtered_dfs',
+                    filtersJson,
+                    Intl.DateTimeFormat().resolvedOptions().timeZone
+                );
+
+                const [
+                    updatedKeyStats,
+                    updatedTimeline,
+                    updatedHours,
+                    updatedWeeks,
+                ] = await Promise.all([
+                    runPythonFunction('get_key_statistics_card_data'),
+                    runPythonFunction('get_timeline_card_data'),
+                    runPythonFunction('get_hour_card_data'),
+                    runPythonFunction('get_week_card_data'),
+                ]);
+
+                setKeyStatisticsData(updatedKeyStats);
+                setTimelineData(updatedTimeline);
+                setHoursData(updatedHours);
+                setWeeksData(updatedWeeks);
+            } catch (error) {
+                console.error('Error updating card data with filters:', error);
+            }
+        },
+        [
+            runPythonFunction,
+            setKeyStatisticsData,
+            setTimelineData,
+            setHoursData,
+            setWeeksData,
+        ]
+    );
 
     // Common function to set up data after analysis
     const setupAnalysisData = useCallback(
@@ -70,39 +109,11 @@ function AppContent() {
             setIsAnalysisComplete(true);
         },
         [
-            runPythonFunction,
             setDateRange,
             setFilters,
-            setKeyStatisticsData,
-            setTimelineData,
-            setHoursData,
             setIsAnalysisComplete,
+            updateCardsWithFilters,
         ]
-    );
-
-    const updateCardsWithFilters = useCallback(
-        async (filtersJson) => {
-            try {
-                await runPythonFunction('generate_filtered_dfs', filtersJson);
-
-                const [updatedKeyStats, updatedTimeline, updatedHours] =
-                    await Promise.all([
-                        runPythonFunction('get_key_statistics_card_data'),
-                        runPythonFunction('get_timeline_card_data'),
-                        runPythonFunction(
-                            'get_hour_card_data',
-                            Intl.DateTimeFormat().resolvedOptions().timeZone
-                        ),
-                    ]);
-
-                setKeyStatisticsData(updatedKeyStats);
-                setTimelineData(updatedTimeline);
-                setHoursData(updatedHours);
-            } catch (error) {
-                console.error('Error updating card data with filters:', error);
-            }
-        },
-        [runPythonFunction, setKeyStatisticsData, setTimelineData, setHoursData]
     );
 
     // Update card data when filters change
@@ -192,6 +203,7 @@ function AppContent() {
         setKeyStatisticsData,
         setTimelineData,
         setHoursData,
+        setWeeksData,
     ]);
 
     const handleFilesSelected = async (files, useCache = false) => {
@@ -362,6 +374,7 @@ function AppContent() {
                                 keyStatisticsData={keyStatisticsData}
                                 timelineData={timelineData}
                                 hoursData={hoursData}
+                                weeksData={weeksData}
                             />
                         )}
                     </>
