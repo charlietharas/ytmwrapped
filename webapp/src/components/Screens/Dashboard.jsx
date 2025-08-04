@@ -10,6 +10,8 @@ import YearCard from '../Cards/YearsCard';
 import TimeSelectorCard from '../Cards/TimeSelectorCard';
 import ArtistsCard from '../Cards/ArtistsCard';
 import SongsCard from '../Cards/SongsCard';
+import ArtistsTableCard from '../Cards/ArtistsTableCard';
+import SongsTableCard from '../Cards/SongsTableCard';
 
 const Dashboard = ({
     keyStatisticsData,
@@ -143,41 +145,9 @@ const Dashboard = ({
 
                     <SongsCard data={songsData} />
 
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>All Artists</h3>
-                        </div>
-                        <div className="card-content">
-                            <input
-                                type="text"
-                                placeholder="Search artists..."
-                                className="search-input"
-                                disabled
-                            />
-                            <p className="card-description">
-                                TODO: Scrollable table with rank, artist name,
-                                play count
-                            </p>
-                        </div>
-                    </div>
+                    <ArtistsTableCard data={artistsData} />
 
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>All Songs</h3>
-                        </div>
-                        <div className="card-content">
-                            <input
-                                type="text"
-                                placeholder="Search songs..."
-                                className="search-input"
-                                disabled
-                            />
-                            <p className="card-description">
-                                TODO: Scrollable table with rank, song name,
-                                artist, play count
-                            </p>
-                        </div>
-                    </div>
+                    <SongsTableCard data={songsData} />
 
                     <div className="card">
                         <div className="card-header">

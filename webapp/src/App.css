@@ -326,6 +326,79 @@ input[type='text'] {
     max-height: 100%;
 }
 
+/* Data Tables */
+.table-wrapper {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    margin-top: 1rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--color-bg-card);
+}
+
+.data-table thead {
+    position: sticky;
+    top: 0;
+    background-color: var(--color-bg-card);
+    z-index: 10;
+}
+
+.data-table th {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    font-weight: 600;
+    background-color: var(--color-bg-card);
+}
+
+.data-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.data-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.data-table tbody tr.highlighted {
+    background-color: rgba(187, 134, 252, 0.1);
+    border-left: 3px solid var(--color-accent);
+}
+
+.data-table .rank-cell {
+    width: 60px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.data-table .name-cell {
+    flex: 1;
+    color: var(--color-text-primary);
+}
+
+.data-table .plays-cell {
+    width: 100px;
+    text-align: right;
+    font-weight: 600;
+}
+
+.data-table .filtered-plays {
+    color: var(--color-accent);
+}
+
+.data-table .other-plays {
+    color: var(--color-text-secondary);
+    font-weight: normal;
+}
+
 .list-wrapper {
     display: flex;
     flex-direction: column;
