@@ -6,7 +6,7 @@ import { chartColors } from '../../utils/chartColors';
 Chart.Chart.register(...Chart.registerables);
 
 const YearCard = ({ data }) => {
-    const { hasActiveFilters, clearYearsFilters } = useApp();
+    const { hasActiveFilters, clearYearsFilters, filters } = useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
@@ -176,13 +176,15 @@ const YearCard = ({ data }) => {
                         >
                             {isZoomed ? '⤆' : '⤢'}
                         </button>
-                        <button
-                            id="clear-filter-btn"
-                            title="Clear all filters"
-                            onClick={clearYearsFilters}
-                        >
-                            ↺
-                        </button>
+                        {filters.years.length > 0 && (
+                            <button
+                                id="clear-filter-btn"
+                                title="Clear year filters"
+                                onClick={clearYearsFilters}
+                            >
+                                ↺
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

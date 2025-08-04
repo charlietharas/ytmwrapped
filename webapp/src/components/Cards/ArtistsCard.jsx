@@ -6,7 +6,7 @@ import { chartColors } from '../../utils/chartColors';
 Chart.Chart.register(...Chart.registerables);
 
 const ArtistsCard = ({ data }) => {
-    const { hasActiveFilters, clearArtistsFilters } = useApp();
+    const { hasActiveFilters, clearArtistsFilters, filters } = useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
@@ -194,8 +194,8 @@ const ArtistsCard = ({ data }) => {
         <div className="card">
             <div className="card-header">
                 <h3>Top 20 Artists</h3>
-                {isFiltered && (
-                    <div className="card-header-controls">
+                <div className="card-header-controls">
+                    {isFiltered && (
                         <button
                             id="zoom-toggle-btn"
                             title={
@@ -207,15 +207,17 @@ const ArtistsCard = ({ data }) => {
                         >
                             {isZoomed ? '⤆' : '⤢'}
                         </button>
+                    )}
+                    {filters.artists.length > 0 && (
                         <button
                             id="clear-filter-btn"
-                            title="Clear all filters"
+                            title="Clear artist filters"
                             onClick={clearArtistsFilters}
                         >
                             ↺
                         </button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
             <div className="card-content">
                 <p className="card-description">Your most played artists</p>

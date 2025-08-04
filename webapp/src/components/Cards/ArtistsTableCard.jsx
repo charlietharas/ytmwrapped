@@ -2,7 +2,7 @@ import React, { useState, useMemo, memo } from 'react';
 import { useApp } from '../../hooks/useApp';
 
 const ArtistsTableCard = ({ data }) => {
-    const { hasActiveFilters, clearArtistsFilters } = useApp();
+    const { hasActiveFilters, clearArtistsFilters, filters } = useApp();
     const [searchTerm, setSearchTerm] = useState('');
     const [isZoomed, setIsZoomed] = useState(false);
 
@@ -90,13 +90,15 @@ const ArtistsTableCard = ({ data }) => {
                         >
                             {isZoomed ? '⤆' : '⤢'}
                         </button>
-                        <button
-                            id="clear-filter-btn"
-                            title="Clear all filters"
-                            onClick={handleClearFilters}
-                        >
-                            ↺
-                        </button>
+                        {filters.artists.length > 0 && (
+                            <button
+                                id="clear-filter-btn"
+                                title="Clear artist filters"
+                                onClick={handleClearFilters}
+                            >
+                                ↺
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

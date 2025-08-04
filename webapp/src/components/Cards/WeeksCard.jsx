@@ -6,7 +6,7 @@ import { chartColors } from '../../utils/chartColors';
 Chart.Chart.register(...Chart.registerables);
 
 const WeeksCard = ({ data }) => {
-    const { hasActiveFilters, clearWeeksFilters } = useApp();
+    const { hasActiveFilters, clearWeeksFilters, filters } = useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
@@ -184,13 +184,15 @@ const WeeksCard = ({ data }) => {
                         >
                             {isZoomed ? '⤆' : '⤢'}
                         </button>
-                        <button
-                            id="clear-filter-btn"
-                            title="Clear all filters"
-                            onClick={clearWeeksFilters}
-                        >
-                            ↺
-                        </button>
+                        {filters.daysOfWeek.length > 0 && (
+                            <button
+                                id="clear-filter-btn"
+                                title="Clear day of week filters"
+                                onClick={clearWeeksFilters}
+                            >
+                                ↺
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

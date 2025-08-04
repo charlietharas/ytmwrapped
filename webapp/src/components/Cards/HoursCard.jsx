@@ -174,13 +174,15 @@ const HoursCard = ({ data }) => {
                         >
                             {isZoomed ? '⤆' : '⤢'}
                         </button>
-                        <button
-                            id="clear-filter-btn"
-                            title="Clear all filters"
-                            onClick={clearHoursFilters}
-                        >
-                            ↺
-                        </button>
+                        {filters.hours.length > 0 && (
+                            <button
+                                id="clear-filter-btn"
+                                title="Clear hour filters"
+                                onClick={clearHoursFilters}
+                            >
+                                ↺
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
