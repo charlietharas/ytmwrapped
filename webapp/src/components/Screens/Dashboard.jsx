@@ -5,12 +5,16 @@ import TimelineCard from '../Cards/TimelineCard';
 import KeyStatisticsCard from '../Cards/KeyStatisticsCard';
 import HoursCard from '../Cards/HoursCard';
 import WeeksCard from '../Cards/WeeksCard';
+import MonthCard from '../Cards/MonthCard';
+import YearCard from '../Cards/YearCard';
 
 const Dashboard = ({
     keyStatisticsData,
     timelineData,
     hoursData,
     weeksData,
+    monthsData,
+    yearsData,
 }) => {
     const { isAnalysisComplete } = useApp();
     const [showHistoryExplorer, setShowHistoryExplorer] = useState(true);
@@ -112,29 +116,9 @@ const Dashboard = ({
 
                     <WeeksCard data={weeksData} />
 
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>Songs per Month of Year</h3>
-                        </div>
-                        <div className="card-content">
-                            <p className="card-description">
-                                TODO: Bar chart showing listening patterns by
-                                month
-                            </p>
-                        </div>
-                    </div>
+                    <MonthCard data={monthsData} />
 
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>Songs per Year</h3>
-                        </div>
-                        <div className="card-content">
-                            <p className="card-description">
-                                TODO: Bar chart showing listening patterns by
-                                year
-                            </p>
-                        </div>
-                    </div>
+                    <YearCard data={yearsData} />
 
                     <div className="card">
                         <div className="card-header">

@@ -285,6 +285,69 @@ def get_week_card_data():
     except Exception as e:
         return {"error": f"Error in Week: {str(e)}"}
 
+def get_month_card_data():
+    global filtered_truncated_df
+    try:
+        period_df = filtered_truncated_df
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        time_local = period_df['time_local']
+        
+        total_counts = period_df.groupby(time_local.dt.month).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.month).size()
+        
+        all_months = pd.Series(index=range(1, 13), dtype=int)
+        total_counts = total_counts.reindex(all_months.index, fill_value=0)
+        filtered_counts = filtered_counts.reindex(all_months.index, fill_value=0)
+        
+        other_counts = total_counts - filtered_counts
+        
+        month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        
+        return {
+            'labels': month_labels,
+            'datasets': [
+                {'label': 'Filtered', 'data': filtered_counts.astype(int).tolist()},
+                {'label': 'Other', 'data': other_counts.astype(int).tolist()}
+            ]
+        }
+            
+    except Exception as e:
+        return {"error": f"Error in Month: {str(e)}"}
+
+def get_year_card_data():
+    global filtered_truncated_df
+    try:
+        period_df = filtered_truncated_df
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        time_local = period_df['time_local']
+        
+        total_counts = period_df.groupby(time_local.dt.year).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.year).size()
+        
+        all_years = pd.Series(index=range(time_local.dt.year.min(), time_local.dt.year.max() + 1), dtype=int)
+        total_counts = total_counts.reindex(all_years.index, fill_value=0)
+        filtered_counts = filtered_counts.reindex(all_years.index, fill_value=0)
+        
+        other_counts = total_counts - filtered_counts
+        
+        year_labels = [str(year) for year in all_years.index]
+        
+        return {
+            'labels': year_labels,
+            'datasets': [
+                {'label': 'Filtered', 'data': filtered_counts.astype(int).tolist()},
+                {'label': 'Other', 'data': other_counts.astype(int).tolist()}
+            ]
+        }
+            
+    except Exception as e:
+        return {"error": f"Error in Year: {str(e)}"}
+
 
 def get_filtered_history(search_term="", page=1, page_size=50):
     global filtered_df
@@ -324,6 +387,8 @@ def register_functions():
         "get_timeline_card_data": get_timeline_card_data,
         "get_hour_card_data": get_hour_card_data,
         "get_week_card_data": get_week_card_data,
+        "get_month_card_data": get_month_card_data,
+        "get_year_card_data": get_year_card_data,
         "get_filtered_history": get_filtered_history,
     }
     import js

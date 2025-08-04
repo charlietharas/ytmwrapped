@@ -53,6 +53,8 @@ function AppContent() {
     const [timelineData, setTimelineData] = useState(null);
     const [hoursData, setHoursData] = useState(null);
     const [weeksData, setWeeksData] = useState(null);
+    const [monthsData, setMonthsData] = useState(null);
+    const [yearsData, setYearsData] = useState(null);
 
     const updateCardsWithFilters = useCallback(
         async (filtersJson) => {
@@ -68,17 +70,23 @@ function AppContent() {
                     updatedTimeline,
                     updatedHours,
                     updatedWeeks,
+                    updatedMonths,
+                    updatedYears,
                 ] = await Promise.all([
                     runPythonFunction('get_key_statistics_card_data'),
                     runPythonFunction('get_timeline_card_data'),
                     runPythonFunction('get_hour_card_data'),
                     runPythonFunction('get_week_card_data'),
+                    runPythonFunction('get_month_card_data'),
+                    runPythonFunction('get_year_card_data'),
                 ]);
 
                 setKeyStatisticsData(updatedKeyStats);
                 setTimelineData(updatedTimeline);
                 setHoursData(updatedHours);
                 setWeeksData(updatedWeeks);
+                setMonthsData(updatedMonths);
+                setYearsData(updatedYears);
             } catch (error) {
                 console.error('Error updating card data with filters:', error);
             }
@@ -89,6 +97,8 @@ function AppContent() {
             setTimelineData,
             setHoursData,
             setWeeksData,
+            setMonthsData,
+            setYearsData,
         ]
     );
 
@@ -204,6 +214,8 @@ function AppContent() {
         setTimelineData,
         setHoursData,
         setWeeksData,
+        setMonthsData,
+        setYearsData,
     ]);
 
     const handleFilesSelected = async (files, useCache = false) => {
@@ -375,6 +387,8 @@ function AppContent() {
                                 timelineData={timelineData}
                                 hoursData={hoursData}
                                 weeksData={weeksData}
+                                monthsData={monthsData}
+                                yearsData={yearsData}
                             />
                         )}
                     </>

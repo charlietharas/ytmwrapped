@@ -98,6 +98,20 @@ export const AppProvider = ({ children }) => {
         }));
     }, []);
 
+    const clearMonthsFilters = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            months: [],
+        }));
+    }, []);
+
+    const clearYearsFilters = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            years: [],
+        }));
+    }, []);
+
     const hasActiveFilters = useCallback(
         (considerDateRange = false) => {
             return (
@@ -141,6 +155,8 @@ export const AppProvider = ({ children }) => {
         clearDateRangeFilters,
         clearHoursFilters,
         clearWeeksFilters,
+        clearMonthsFilters,
+        clearYearsFilters,
         hasActiveFilters,
     };
 
