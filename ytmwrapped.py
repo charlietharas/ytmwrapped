@@ -348,6 +348,55 @@ def get_year_card_data():
     except Exception as e:
         return {"error": f"Error in Year: {str(e)}"}
 
+def get_artists_data():
+    global filtered_truncated_df
+    try:
+        period_df = filtered_truncated_df
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        total_counts = period_df.groupby('artist').size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby('artist').size()
+        
+        combined = pd.DataFrame({'total': total_counts, 'filtered': filtered_counts}).fillna(0)
+        combined['other'] = combined['total'] - combined['filtered']
+        
+        combined = combined.sort_values('total', ascending=False)
+        
+        return {
+            'labels': combined.index.tolist(),
+            'datasets': [
+                {'label': 'Filtered', 'data': combined['filtered'].astype(int).tolist()},
+                {'label': 'Other', 'data': combined['other'].astype(int).tolist()}
+            ]
+        }
+    except Exception as e:
+        return {"error": f"Error in Artists Data: {str(e)}"}
+
+def get_songs_data():
+    global filtered_truncated_df
+    try:
+        period_df = filtered_truncated_df
+        if period_df is None or period_df.empty:
+            return {'labels': [], 'datasets': []}
+
+        total_counts = period_df.groupby('artist_title').size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby('artist_title').size()
+        
+        combined = pd.DataFrame({'total': total_counts, 'filtered': filtered_counts}).fillna(0)
+        combined['other'] = combined['total'] - combined['filtered']
+        
+        combined = combined.sort_values('total', ascending=False)
+        
+        return {
+            'labels': combined.index.tolist(),
+            'datasets': [
+                {'label': 'Filtered', 'data': combined['filtered'].astype(int).tolist()},
+                {'label': 'Other', 'data': combined['other'].astype(int).tolist()}
+            ]
+        }
+    except Exception as e:
+        return {"error": f"Error in Songs Data: {str(e)}"}
 
 def get_filtered_history(search_term="", page=1, page_size=50):
     global filtered_df
@@ -390,6 +439,8 @@ def register_functions():
         "get_month_card_data": get_month_card_data,
         "get_year_card_data": get_year_card_data,
         "get_filtered_history": get_filtered_history,
+        "get_artists_data": get_artists_data,
+        "get_songs_data": get_songs_data,
     }
     import js
     for name, func in function_map.items():
