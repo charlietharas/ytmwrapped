@@ -17,18 +17,18 @@ const SongsTableCard = ({ data }) => {
             const filteredPlays = data.datasets?.[0]?.data?.[index] || 0;
             const otherPlays = data.datasets?.[1]?.data?.[index] || 0;
             const totalPlays = filteredPlays + otherPlays;
-            
+
             return {
                 rank: index + 1,
                 name: song,
                 filteredPlays: filteredPlays,
                 totalPlays: totalPlays,
-                otherPlays: otherPlays
+                otherPlays: otherPlays,
             };
         });
 
         if (searchTerm) {
-            return songs.filter(song => 
+            return songs.filter((song) =>
                 song.name.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
@@ -36,14 +36,14 @@ const SongsTableCard = ({ data }) => {
         let filtered = songs;
 
         if (searchTerm) {
-            filtered = filtered.filter(song => 
+            filtered = filtered.filter((song) =>
                 song.name.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
 
         // Apply zoom filter - show only filtered rows when zoomed
         if (isFiltered && isZoomed) {
-            filtered = filtered.filter(song => song.filteredPlays > 0);
+            filtered = filtered.filter((song) => song.filteredPlays > 0);
         }
 
         return filtered;
@@ -98,10 +98,8 @@ const SongsTableCard = ({ data }) => {
                 )}
             </div>
             <div className="card-content">
-                <p className="card-description">
-                    All of your favorite songs
-                </p>
-                
+                <p className="card-description">All of your favorite songs</p>
+
                 <input
                     type="text"
                     placeholder="Search songs..."
@@ -121,18 +119,27 @@ const SongsTableCard = ({ data }) => {
                         </thead>
                         <tbody>
                             {filteredSongs.map((song) => (
-                                <tr 
+                                <tr
                                     key={song.name}
-                                    className={isFiltered && song.filteredPlays > 0 ? 'highlighted' : ''}
+                                    className={
+                                        isFiltered && song.filteredPlays > 0
+                                            ? 'highlighted'
+                                            : ''
+                                    }
                                 >
                                     <td className="rank-cell">{song.rank}</td>
                                     <td className="name-cell">{song.name}</td>
                                     <td className="plays-cell">
                                         {isFiltered ? (
                                             <>
-                                                <span className="filtered-plays">{song.filteredPlays}</span>
+                                                <span className="filtered-plays">
+                                                    {song.filteredPlays}
+                                                </span>
                                                 {song.otherPlays > 0 && (
-                                                    <span className="other-plays"> + {song.otherPlays}</span>
+                                                    <span className="other-plays">
+                                                        {' '}
+                                                        + {song.otherPlays}
+                                                    </span>
                                                 )}
                                             </>
                                         ) : (
@@ -149,4 +156,4 @@ const SongsTableCard = ({ data }) => {
     );
 };
 
-export default memo(SongsTableCard); 
+export default memo(SongsTableCard);

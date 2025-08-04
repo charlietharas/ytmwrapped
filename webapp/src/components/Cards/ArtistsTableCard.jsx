@@ -17,18 +17,18 @@ const ArtistsTableCard = ({ data }) => {
             const filteredPlays = data.datasets?.[0]?.data?.[index] || 0;
             const otherPlays = data.datasets?.[1]?.data?.[index] || 0;
             const totalPlays = filteredPlays + otherPlays;
-            
+
             return {
                 rank: index + 1,
                 name: artist,
                 filteredPlays: filteredPlays,
                 totalPlays: totalPlays,
-                otherPlays: otherPlays
+                otherPlays: otherPlays,
             };
         });
 
         if (searchTerm) {
-            return artists.filter(artist => 
+            return artists.filter((artist) =>
                 artist.name.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
@@ -36,14 +36,14 @@ const ArtistsTableCard = ({ data }) => {
         let filtered = artists;
 
         if (searchTerm) {
-            filtered = filtered.filter(artist => 
+            filtered = filtered.filter((artist) =>
                 artist.name.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
 
         // Apply zoom filter - show only filtered rows when zoomed
         if (isFiltered && isZoomed) {
-            filtered = filtered.filter(artist => artist.filteredPlays > 0);
+            filtered = filtered.filter((artist) => artist.filteredPlays > 0);
         }
 
         return filtered;
@@ -98,10 +98,8 @@ const ArtistsTableCard = ({ data }) => {
                 )}
             </div>
             <div className="card-content">
-                <p className="card-description">
-                    All of your favorite artists
-                </p>
-                
+                <p className="card-description">All of your favorite artists</p>
+
                 <input
                     type="text"
                     placeholder="Search artists..."
@@ -121,18 +119,27 @@ const ArtistsTableCard = ({ data }) => {
                         </thead>
                         <tbody>
                             {filteredArtists.map((artist) => (
-                                <tr 
+                                <tr
                                     key={artist.name}
-                                    className={isFiltered && artist.filteredPlays > 0 ? 'highlighted' : ''}
+                                    className={
+                                        isFiltered && artist.filteredPlays > 0
+                                            ? 'highlighted'
+                                            : ''
+                                    }
                                 >
                                     <td className="rank-cell">{artist.rank}</td>
                                     <td className="name-cell">{artist.name}</td>
                                     <td className="plays-cell">
                                         {isFiltered ? (
                                             <>
-                                                <span className="filtered-plays">{artist.filteredPlays}</span>
+                                                <span className="filtered-plays">
+                                                    {artist.filteredPlays}
+                                                </span>
                                                 {artist.otherPlays > 0 && (
-                                                    <span className="other-plays"> + {artist.otherPlays}</span>
+                                                    <span className="other-plays">
+                                                        {' '}
+                                                        + {artist.otherPlays}
+                                                    </span>
                                                 )}
                                             </>
                                         ) : (
@@ -149,4 +156,4 @@ const ArtistsTableCard = ({ data }) => {
     );
 };
 
-export default memo(ArtistsTableCard); 
+export default memo(ArtistsTableCard);

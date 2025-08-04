@@ -20,8 +20,10 @@ const SongsCard = ({ data }) => {
         }
 
         const labels = data.labels?.slice(0, 20) || [];
-        const filteredData = data.datasets?.[0]?.data?.slice(0, 20) || new Array(20).fill(0);
-        const otherData = data.datasets?.[1]?.data?.slice(0, 20) || new Array(20).fill(0);
+        const filteredData =
+            data.datasets?.[0]?.data?.slice(0, 20) || new Array(20).fill(0);
+        const otherData =
+            data.datasets?.[1]?.data?.slice(0, 20) || new Array(20).fill(0);
         const totalData = filteredData.map(
             (val, i) => val + (otherData[i] || 0)
         );
@@ -77,10 +79,12 @@ const SongsCard = ({ data }) => {
                         beginAtZero: true,
                         ticks: {
                             color: chartColors.text.secondary,
-                            callback: function(value, index) {
+                            callback: function (value) {
                                 const label = this.getLabelForValue(value);
-                                return label.length > 30 ? label.substring(0, 30) + '...' : label;
-                            }
+                                return label.length > 30
+                                    ? label.substring(0, 30) + '...'
+                                    : label;
+                            },
                         },
                         grid: {
                             color: chartColors.border,
@@ -100,8 +104,8 @@ const SongsCard = ({ data }) => {
                         left: 10,
                         right: 10,
                         top: 10,
-                        bottom: 10
-                    }
+                        bottom: 10,
+                    },
                 },
                 plugins: {
                     legend: { display: false },
@@ -204,9 +208,7 @@ const SongsCard = ({ data }) => {
                 )}
             </div>
             <div className="card-content">
-                <p className="card-description">
-                    Your most played songs
-                </p>
+                <p className="card-description">Your most played songs</p>
                 <div className="chart-wrapper horizontal-bars">
                     <canvas ref={chartRef} />
                 </div>
@@ -215,4 +217,4 @@ const SongsCard = ({ data }) => {
     );
 };
 
-export default memo(SongsCard); 
+export default memo(SongsCard);
