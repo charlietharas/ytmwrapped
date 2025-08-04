@@ -46,15 +46,11 @@ const MonthCard = ({ data }) => {
                     label: 'Filtered',
                     data: filteredData,
                     backgroundColor: chartColors.accent,
-                    borderColor: chartColors.border,
-                    borderWidth: 1,
                 },
                 {
-                    label: 'Total',
-                    data: totalData,
+                    label: 'Other',
+                    data: otherData,
                     backgroundColor: 'rgba(100, 100, 100, 0.5)',
-                    borderColor: chartColors.border,
-                    borderWidth: 1,
                 },
             ];
         } else {
@@ -65,8 +61,6 @@ const MonthCard = ({ data }) => {
                     label: 'Plays',
                     data: displayData,
                     backgroundColor: chartColors.accent,
-                    borderColor: chartColors.border,
-                    borderWidth: 1,
                 },
             ];
         }
@@ -86,6 +80,7 @@ const MonthCard = ({ data }) => {
                 },
                 scales: {
                     y: {
+                        stacked: true,
                         beginAtZero: true,
                         ticks: {
                             color: chartColors.text.secondary,
@@ -95,6 +90,7 @@ const MonthCard = ({ data }) => {
                         },
                     },
                     x: {
+                        stacked: true,
                         ticks: {
                             color: chartColors.text.secondary,
                         },
@@ -117,8 +113,8 @@ const MonthCard = ({ data }) => {
                             label: (ctx) => {
                                 if (showStacked) {
                                     const index = ctx.dataIndex;
-                                    if (ctx.dataset.label === 'Total') {
-                                        return `Other: ${totalData[index] - filteredData[index]}`;
+                                    if (ctx.dataset.label === 'Other') {
+                                        return `Other: ${otherData[index]}`;
                                     } else {
                                         return `Filtered: ${ctx.raw}`;
                                     }

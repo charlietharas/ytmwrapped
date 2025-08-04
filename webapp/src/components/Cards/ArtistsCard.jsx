@@ -19,14 +19,27 @@ const ArtistsCard = ({ data }) => {
             return null;
         }
 
-        const labels = data.labels?.slice(0, 20) || [];
-        const filteredData =
-            data.datasets?.[0]?.data?.slice(0, 20) || new Array(20).fill(0);
-        const otherData =
-            data.datasets?.[1]?.data?.slice(0, 20) || new Array(20).fill(0);
-        const totalData = filteredData.map(
-            (val, i) => val + (otherData[i] || 0)
-        );
+        let artists =
+            data.labels?.map((label, index) => ({
+                name: label,
+                filteredPlays: data.datasets?.[0]?.data?.[index] || 0,
+                otherPlays: data.datasets?.[1]?.data?.[index] || 0,
+                totalPlays:
+                    (data.datasets?.[0]?.data?.[index] || 0) +
+                    (data.datasets?.[1]?.data?.[index] || 0),
+            })) || [];
+
+        if (isFiltered && isZoomed) {
+            artists = artists
+                .filter((a) => a.filteredPlays > 0)
+                .sort((a, b) => b.filteredPlays - a.filteredPlays);
+        }
+
+        const top20 = artists.slice(0, 20);
+        const labels = top20.map((a) => a.name);
+        const filteredData = top20.map((a) => a.filteredPlays);
+        const otherData = top20.map((a) => a.otherPlays);
+        const totalData = top20.map((a) => a.totalPlays);
 
         let datasets;
         if (showStacked) {
@@ -35,15 +48,11 @@ const ArtistsCard = ({ data }) => {
                     label: 'Filtered',
                     data: filteredData,
                     backgroundColor: chartColors.accent,
-                    borderColor: chartColors.border,
-                    borderWidth: 1,
                 },
                 {
-                    label: 'Total',
-                    data: totalData,
+                    label: 'Other',
+                    data: otherData,
                     backgroundColor: 'rgba(100, 100, 100, 0.5)',
-                    borderColor: chartColors.border,
-                    borderWidth: 1,
                 },
             ];
         } else {
@@ -54,8 +63,6 @@ const ArtistsCard = ({ data }) => {
                     label: 'Plays',
                     data: displayData,
                     backgroundColor: chartColors.accent,
-                    borderColor: chartColors.border,
-                    borderWidth: 1,
                 },
             ];
         }
@@ -71,11 +78,13 @@ const ArtistsCard = ({ data }) => {
                 maintainAspectRatio: false,
                 indexAxis: 'y',
                 interaction: {
-                    mode: 'point',
-                    intersect: true,
+                    mode: 'index',
+                    axis: 'y',
+                    intersect: false,
                 },
                 scales: {
                     y: {
+                        stacked: true,
                         beginAtZero: true,
                         ticks: {
                             color: chartColors.text.secondary,
@@ -91,6 +100,7 @@ const ArtistsCard = ({ data }) => {
                         },
                     },
                     x: {
+                        stacked: true,
                         ticks: {
                             color: chartColors.text.secondary,
                         },
@@ -110,8 +120,8 @@ const ArtistsCard = ({ data }) => {
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        mode: 'point',
-                        intersect: true,
+                        mode: 'index',
+                        intersect: false,
                         backgroundColor: chartColors.background.card,
                         titleColor: chartColors.text.primary,
                         bodyColor: chartColors.text.primary,
@@ -121,8 +131,8 @@ const ArtistsCard = ({ data }) => {
                             label: (ctx) => {
                                 if (showStacked) {
                                     const index = ctx.dataIndex;
-                                    if (ctx.dataset.label === 'Total') {
-                                        return `Other: ${totalData[index] - filteredData[index]}`;
+                                    if (ctx.dataset.label === 'Other') {
+                                        return `Other: ${otherData[index]}`;
                                     } else {
                                         return `Filtered: ${ctx.raw}`;
                                     }

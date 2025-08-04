@@ -109,6 +109,14 @@ def _apply_filters(df, filters):
             category_mask = df['artist'].isin(values)
         elif filter_type == 'song':
             category_mask = df['artist_title'].isin(values)
+        elif filter_type == 'hour':
+            category_mask = df['time_local'].dt.hour.isin(values)
+        elif filter_type == 'dayOfWeek':
+            category_mask = df['time_local'].dt.dayofweek.isin(values)
+        elif filter_type == 'month':
+            category_mask = df['time_local'].dt.month.isin(values)
+        elif filter_type == 'year':
+            category_mask = df['time_local'].dt.year.isin(values)
         elif filter_type == 'dateRange':
             for date_range in values:
                 start_date = pd.to_datetime(date_range['start'], utc=True)
@@ -120,7 +128,7 @@ def _apply_filters(df, filters):
         
     return final_mask
 
-def _get_filtered_df(filters_json="[]", filter_by_date=True):
+def _get_filtered_df(filters_json="[]", filter_by_date=True, timezone="UTC"):
     if master_df is None or min_date is None or max_date is None:
         return None
 
@@ -151,6 +159,7 @@ def _get_filtered_df(filters_json="[]", filter_by_date=True):
     if period_df.empty:
         return period_df
 
+    period_df['time_local'] = period_df['time'].dt.tz_convert(timezone)
     filter_mask = _apply_filters(period_df, grouped_filters)
     period_df['matches_filter'] = filter_mask.astype(int)
     
@@ -159,13 +168,8 @@ def _get_filtered_df(filters_json="[]", filter_by_date=True):
 def generate_filtered_dfs(filters_json="[]", timezone="UTC"):
     global filtered_df, filtered_truncated_df
     try:
-        filtered_df = _get_filtered_df(filters_json, filter_by_date=False)
-        filtered_truncated_df = _get_filtered_df(filters_json)
-        
-        if filtered_df is not None and not filtered_df.empty:
-            filtered_df['time_local'] = filtered_df['time'].dt.tz_convert(timezone)
-        if filtered_truncated_df is not None and not filtered_truncated_df.empty:
-            filtered_truncated_df['time_local'] = filtered_truncated_df['time'].dt.tz_convert(timezone)
+        filtered_df = _get_filtered_df(filters_json, filter_by_date=False, timezone=timezone)
+        filtered_truncated_df = _get_filtered_df(filters_json, timezone=timezone)
         
         return {"success": True}
     except Exception as e:

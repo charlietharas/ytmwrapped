@@ -8,7 +8,7 @@ const SongsTableCard = ({ data }) => {
 
     const isFiltered = hasActiveFilters();
 
-    const filteredSongs = useMemo(() => {
+    const rankedSongs = useMemo(() => {
         if (!data || data.error || !data.labels) {
             return [];
         }
@@ -19,35 +19,38 @@ const SongsTableCard = ({ data }) => {
             const totalPlays = filteredPlays + otherPlays;
 
             return {
-                rank: index + 1,
+                originalRank: index + 1,
                 name: song,
-                filteredPlays: filteredPlays,
-                totalPlays: totalPlays,
-                otherPlays: otherPlays,
+                filteredPlays,
+                totalPlays,
+                otherPlays,
             };
         });
 
-        if (searchTerm) {
-            return songs.filter((song) =>
-                song.name.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        let filtered = songs;
-
-        if (searchTerm) {
-            filtered = filtered.filter((song) =>
-                song.name.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        // Apply zoom filter - show only filtered rows when zoomed
         if (isFiltered && isZoomed) {
-            filtered = filtered.filter((song) => song.filteredPlays > 0);
+            return songs
+                .filter((song) => song.filteredPlays > 0)
+                .sort((a, b) => b.filteredPlays - a.filteredPlays)
+                .map((song, index) => ({
+                    ...song,
+                    rank: index + 1,
+                }));
         }
 
-        return filtered;
-    }, [data, searchTerm, isFiltered, isZoomed]);
+        return songs.map((song) => ({
+            ...song,
+            rank: song.originalRank,
+        }));
+    }, [data, isFiltered, isZoomed]);
+
+    const searchedSongs = useMemo(() => {
+        if (!searchTerm) {
+            return rankedSongs;
+        }
+        return rankedSongs.filter((song) =>
+            song.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [rankedSongs, searchTerm]);
 
     const handleClearFilters = () => {
         clearSongsFilters();
@@ -118,7 +121,7 @@ const SongsTableCard = ({ data }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredSongs.map((song) => (
+                            {searchedSongs.map((song) => (
                                 <tr
                                     key={song.name}
                                     className={
@@ -127,21 +130,30 @@ const SongsTableCard = ({ data }) => {
                                             : ''
                                     }
                                 >
-                                    <td className="rank-cell">{song.rank}</td>
+                                    <td className="rank-cell">
+                                        {song.rank}
+                                    </td>
                                     <td className="name-cell">{song.name}</td>
                                     <td className="plays-cell">
                                         {isFiltered ? (
-                                            <>
-                                                <span className="filtered-plays">
-                                                    {song.filteredPlays}
-                                                </span>
-                                                {song.otherPlays > 0 && (
-                                                    <span className="other-plays">
-                                                        {' '}
-                                                        + {song.otherPlays}
+                                            song.filteredPlays > 0 ? (
+                                                <>
+                                                    <span className="filtered-plays">
+                                                        {song.filteredPlays}
                                                     </span>
-                                                )}
-                                            </>
+                                                    {song.otherPlays > 0 &&
+                                                    !isZoomed ? (
+                                                        <span className="other-plays">
+                                                            {' '}
+                                                            + {song.otherPlays}
+                                                        </span>
+                                                    ) : null}
+                                                </>
+                                            ) : (
+                                                <span className="other-plays">
+                                                    {song.totalPlays}
+                                                </span>
+                                            )
                                         ) : (
                                             song.totalPlays
                                         )}

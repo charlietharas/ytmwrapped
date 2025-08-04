@@ -8,7 +8,7 @@ const ArtistsTableCard = ({ data }) => {
 
     const isFiltered = hasActiveFilters();
 
-    const filteredArtists = useMemo(() => {
+    const rankedArtists = useMemo(() => {
         if (!data || data.error || !data.labels) {
             return [];
         }
@@ -19,35 +19,38 @@ const ArtistsTableCard = ({ data }) => {
             const totalPlays = filteredPlays + otherPlays;
 
             return {
-                rank: index + 1,
+                originalRank: index + 1,
                 name: artist,
-                filteredPlays: filteredPlays,
-                totalPlays: totalPlays,
-                otherPlays: otherPlays,
+                filteredPlays,
+                totalPlays,
+                otherPlays,
             };
         });
 
-        if (searchTerm) {
-            return artists.filter((artist) =>
-                artist.name.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        let filtered = artists;
-
-        if (searchTerm) {
-            filtered = filtered.filter((artist) =>
-                artist.name.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        // Apply zoom filter - show only filtered rows when zoomed
         if (isFiltered && isZoomed) {
-            filtered = filtered.filter((artist) => artist.filteredPlays > 0);
+            return artists
+                .filter((artist) => artist.filteredPlays > 0)
+                .sort((a, b) => b.filteredPlays - a.filteredPlays)
+                .map((artist, index) => ({
+                    ...artist,
+                    rank: index + 1,
+                }));
         }
 
-        return filtered;
-    }, [data, searchTerm, isFiltered, isZoomed]);
+        return artists.map((artist) => ({
+            ...artist,
+            rank: artist.originalRank,
+        }));
+    }, [data, isFiltered, isZoomed]);
+
+    const searchedArtists = useMemo(() => {
+        if (!searchTerm) {
+            return rankedArtists;
+        }
+        return rankedArtists.filter((artist) =>
+            artist.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [rankedArtists, searchTerm]);
 
     const handleClearFilters = () => {
         clearArtistsFilters();
@@ -118,7 +121,7 @@ const ArtistsTableCard = ({ data }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredArtists.map((artist) => (
+                            {searchedArtists.map((artist) => (
                                 <tr
                                     key={artist.name}
                                     className={
@@ -127,21 +130,31 @@ const ArtistsTableCard = ({ data }) => {
                                             : ''
                                     }
                                 >
-                                    <td className="rank-cell">{artist.rank}</td>
+                                    <td className="rank-cell">
+                                        {artist.rank}
+                                    </td>
                                     <td className="name-cell">{artist.name}</td>
                                     <td className="plays-cell">
                                         {isFiltered ? (
-                                            <>
-                                                <span className="filtered-plays">
-                                                    {artist.filteredPlays}
-                                                </span>
-                                                {artist.otherPlays > 0 && (
-                                                    <span className="other-plays">
-                                                        {' '}
-                                                        + {artist.otherPlays}
+                                            artist.filteredPlays > 0 ? (
+                                                <>
+                                                    <span className="filtered-plays">
+                                                        {artist.filteredPlays}
                                                     </span>
-                                                )}
-                                            </>
+                                                    {artist.otherPlays > 0 &&
+                                                    !isZoomed ? (
+                                                        <span className="other-plays">
+                                                            {' '}
+                                                            +{' '}
+                                                            {artist.otherPlays}
+                                                        </span>
+                                                    ) : null}
+                                                </>
+                                            ) : (
+                                                <span className="other-plays">
+                                                    {artist.totalPlays}
+                                                </span>
+                                            )
                                         ) : (
                                             artist.totalPlays
                                         )}

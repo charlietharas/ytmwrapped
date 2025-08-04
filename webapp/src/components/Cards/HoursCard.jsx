@@ -6,13 +6,27 @@ import { chartColors } from '../../utils/chartColors';
 Chart.Chart.register(...Chart.registerables);
 
 const HoursCard = ({ data }) => {
-    const { hasActiveFilters, clearHoursFilters } = useApp();
+    const { hasActiveFilters, clearHoursFilters, updateFilter, filters } = useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
     const isFiltered = hasActiveFilters();
     const showStacked = isFiltered && !isZoomed;
+
+    const handleChartClick = (event) => {
+        const points = chartInstance.current.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+        if (points.length) {
+            const firstPoint = points[0];
+            const label = chartInstance.current.data.labels[firstPoint.index];
+            const hour = parseInt(label, 10);
+            
+            const newHours = filters.hours.includes(hour)
+                ? filters.hours.filter((h) => h !== hour)
+                : [...filters.hours, hour];
+            updateFilter('hours', newHours.sort((a, b) => a - b));
+        }
+    };
 
     const chartConfig = useMemo(() => {
         const labels =
@@ -88,6 +102,7 @@ const HoursCard = ({ data }) => {
                         },
                     },
                 },
+                onClick: handleChartClick,
                 plugins: {
                     legend: { display: false },
                     tooltip: {
