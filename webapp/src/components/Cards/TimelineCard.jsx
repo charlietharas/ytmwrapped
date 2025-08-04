@@ -68,7 +68,7 @@ const TimelineCard = ({ data }) => {
         }));
     }, [data]);
 
-    const isFiltered = hasActiveFilters();
+    const isFiltered = hasActiveFilters(true);
     const displayData = useMemo(() => {
         if (!isZoomed || !isFiltered) return chartData;
         return chartData.filter(

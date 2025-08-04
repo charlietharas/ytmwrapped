@@ -5,7 +5,7 @@ const KeyStatisticsCard = ({ data }) => {
     const { hasActiveFilters } = useApp();
 
     // Check if any filters are active
-    const filtersActive = hasActiveFilters();
+    const filtersActive = hasActiveFilters(true);
     const {
         total_plays = 0,
         total_unique_songs = 0,

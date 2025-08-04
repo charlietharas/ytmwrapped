@@ -77,23 +77,27 @@ export const AppProvider = ({ children }) => {
         });
     }, [dateRange]);
 
-    const hasActiveFilters = useCallback(() => {
-        return (
-            filters.songs.length > 0 ||
-            filters.artists.length > 0 ||
-            filters.hours.length > 0 ||
-            filters.daysOfWeek.length > 0 ||
-            filters.months.length > 0 ||
-            filters.years.length > 0 ||
-            filters.genres.length > 0 ||
-            filters.dateRange.start !== dateRange.start ||
-            filters.dateRange.end !== dateRange.end ||
-            filters.durationRange.min !== null ||
-            filters.durationRange.max !== null ||
-            filters.releaseYearRange.min !== null ||
-            filters.releaseYearRange.max !== null
-        );
-    }, [filters, dateRange]);
+    const hasActiveFilters = useCallback(
+        (considerDateRange = false) => {
+            return (
+                filters.songs.length > 0 ||
+                filters.artists.length > 0 ||
+                filters.hours.length > 0 ||
+                filters.daysOfWeek.length > 0 ||
+                filters.months.length > 0 ||
+                filters.years.length > 0 ||
+                filters.genres.length > 0 ||
+                (considerDateRange &&
+                    (filters.dateRange.start !== dateRange.start ||
+                        filters.dateRange.end !== dateRange.end)) ||
+                filters.durationRange.min !== null ||
+                filters.durationRange.max !== null ||
+                filters.releaseYearRange.min !== null ||
+                filters.releaseYearRange.max !== null
+            );
+        },
+        [filters, dateRange]
+    );
 
     const value = {
         // State
