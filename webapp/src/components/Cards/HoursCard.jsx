@@ -16,7 +16,7 @@ const HoursCard = ({ data }) => {
 
     const chartConfig = useMemo(() => {
         const labels =
-            data?.labels?.map((hour) => hour.split(':')[0]) ||
+            data?.labels ||
             Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
         const filteredData = data?.datasets?.[0]?.data || new Array(24).fill(0);
         const otherData = data?.datasets?.[1]?.data || new Array(24).fill(0);
@@ -28,17 +28,17 @@ const HoursCard = ({ data }) => {
         if (showStacked) {
             datasets = [
                 {
-                    label: 'Total',
-                    data: totalData,
-                    backgroundColor: 'rgba(100, 100, 100, 0.5)',
-                    borderColor: 'rgba(100, 100, 100, 0.5)',
-                    borderWidth: 1,
-                },
-                {
                     label: 'Filtered',
                     data: filteredData,
                     backgroundColor: chartColors.accent,
-                    borderColor: chartColors.accent,
+                    borderColor: chartColors.border,
+                    borderWidth: 1,
+                },
+                {
+                    label: 'Total',
+                    data: totalData,
+                    backgroundColor: 'rgba(100, 100, 100, 0.5)',
+                    borderColor: chartColors.border,
                     borderWidth: 1,
                 },
             ];
@@ -50,6 +50,8 @@ const HoursCard = ({ data }) => {
                     label: 'Plays',
                     data: displayData,
                     backgroundColor: chartColors.accent,
+                    borderColor: chartColors.border,
+                    borderWidth: 1,
                 },
             ];
         }

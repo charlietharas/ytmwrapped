@@ -8,12 +8,22 @@ const FilterBar = () => {
     const [endDate, setEndDate] = useState('');
 
     useEffect(() => {
-        setStartDate(filters.dateRange.start ? new Date(filters.dateRange.start).toISOString().split('T')[0] : '');
-        setEndDate(filters.dateRange.end ? new Date(filters.dateRange.end).toISOString().split('T')[0] : '');
+        setStartDate(
+            filters.dateRange.start
+                ? new Date(filters.dateRange.start).toISOString().split('T')[0]
+                : ''
+        );
+        setEndDate(
+            filters.dateRange.end
+                ? new Date(filters.dateRange.end).toISOString().split('T')[0]
+                : ''
+        );
     }, [filters.dateRange]);
 
     const handleDateUpdate = () => {
-        let newStart = startDate ? new Date(startDate).getTime() : dateRange.start;
+        let newStart = startDate
+            ? new Date(startDate).getTime()
+            : dateRange.start;
         let newEnd = endDate ? new Date(endDate).getTime() : dateRange.end;
 
         if (newStart < dateRange.start) newStart = dateRange.start;
@@ -43,8 +53,20 @@ const FilterBar = () => {
                         type="date"
                         placeholder="Start"
                         value={startDate}
-                        min={dateRange.start ? new Date(dateRange.start).toISOString().split('T')[0] : ''}
-                        max={dateRange.end ? new Date(dateRange.end).toISOString().split('T')[0] : ''}
+                        min={
+                            dateRange.start
+                                ? new Date(dateRange.start)
+                                      .toISOString()
+                                      .split('T')[0]
+                                : ''
+                        }
+                        max={
+                            dateRange.end
+                                ? new Date(dateRange.end)
+                                      .toISOString()
+                                      .split('T')[0]
+                                : ''
+                        }
                         onChange={(e) => setStartDate(e.target.value)}
                         onBlur={handleDateUpdate}
                         onKeyDown={handleKeyDown}
@@ -53,8 +75,20 @@ const FilterBar = () => {
                         type="date"
                         placeholder="End"
                         value={endDate}
-                        min={dateRange.start ? new Date(dateRange.start).toISOString().split('T')[0] : ''}
-                        max={dateRange.end ? new Date(dateRange.end).toISOString().split('T')[0] : ''}
+                        min={
+                            dateRange.start
+                                ? new Date(dateRange.start)
+                                      .toISOString()
+                                      .split('T')[0]
+                                : ''
+                        }
+                        max={
+                            dateRange.end
+                                ? new Date(dateRange.end)
+                                      .toISOString()
+                                      .split('T')[0]
+                                : ''
+                        }
                         onChange={(e) => setEndDate(e.target.value)}
                         onBlur={handleDateUpdate}
                         onKeyDown={handleKeyDown}

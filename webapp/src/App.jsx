@@ -55,36 +55,17 @@ function AppContent() {
 
     // Common function to set up data after analysis
     const setupAnalysisData = useCallback(
-        (minDate, maxDate) => {
+        async (minDate, maxDate) => {
             const minTimestamp = new Date(minDate).getTime();
             const maxTimestamp = new Date(maxDate).getTime();
 
-            // Set date ranges
             setDateRange({ start: minTimestamp, end: maxTimestamp });
             setFilters((prev) => ({
                 ...prev,
                 dateRange: { start: minTimestamp, end: maxTimestamp },
             }));
 
-            const filtersJson = JSON.stringify([]);
-
-            const keyStats = runPythonFunction(
-                'get_key_statistics_card_data',
-                filtersJson
-            );
-            const timeline = runPythonFunction(
-                'get_timeline_card_data',
-                filtersJson
-            );
-            const hours = runPythonFunction(
-                'get_hour_card_data',
-                filtersJson,
-                Intl.DateTimeFormat().resolvedOptions().timeZone
-            );
-
-            setKeyStatisticsData(keyStats);
-            setTimelineData(timeline);
-            setHoursData(hours);
+            await updateCardsWithFilters(JSON.stringify([]));
 
             setIsAnalysisComplete(true);
         },
@@ -99,6 +80,31 @@ function AppContent() {
         ]
     );
 
+    const updateCardsWithFilters = useCallback(
+        async (filtersJson) => {
+            try {
+                await runPythonFunction('generate_filtered_dfs', filtersJson);
+
+                const [updatedKeyStats, updatedTimeline, updatedHours] =
+                    await Promise.all([
+                        runPythonFunction('get_key_statistics_card_data'),
+                        runPythonFunction('get_timeline_card_data'),
+                        runPythonFunction(
+                            'get_hour_card_data',
+                            Intl.DateTimeFormat().resolvedOptions().timeZone
+                        ),
+                    ]);
+
+                setKeyStatisticsData(updatedKeyStats);
+                setTimelineData(updatedTimeline);
+                setHoursData(updatedHours);
+            } catch (error) {
+                console.error('Error updating card data with filters:', error);
+            }
+        },
+        [runPythonFunction, setKeyStatisticsData, setTimelineData, setHoursData]
+    );
+
     // Update card data when filters change
     useEffect(() => {
         if (
@@ -109,7 +115,7 @@ function AppContent() {
         )
             return;
 
-        const updateCardsWithFilters = () => {
+        const updateCardsWithFiltersHandler = async () => {
             try {
                 const activeFilters = [];
 
@@ -170,36 +176,19 @@ function AppContent() {
                 }
 
                 const filtersJson = JSON.stringify(activeFilters);
-
-                const updatedKeyStats = runPythonFunction(
-                    'get_key_statistics_card_data',
-                    filtersJson
-                );
-                const updatedTimeline = runPythonFunction(
-                    'get_timeline_card_data',
-                    filtersJson
-                );
-                const updatedHours = runPythonFunction(
-                    'get_hour_card_data',
-                    filtersJson,
-                    Intl.DateTimeFormat().resolvedOptions().timeZone
-                );
-
-                setKeyStatisticsData(updatedKeyStats);
-                setTimelineData(updatedTimeline);
-                setHoursData(updatedHours);
+                await updateCardsWithFilters(filtersJson);
             } catch (error) {
                 console.error('Error updating card data with filters:', error);
             }
         };
 
-        updateCardsWithFilters();
+        updateCardsWithFiltersHandler();
     }, [
         filters,
         pyodide,
         currentScreen,
         dateRange,
-        runPythonFunction,
+        updateCardsWithFilters,
         setKeyStatisticsData,
         setTimelineData,
         setHoursData,
@@ -219,11 +208,9 @@ function AppContent() {
             setCurrentScreen('analyzing');
 
             try {
-                // First check if we have the dataframe CSV cached
                 const cachedDataframeCSV = await loadDataframeCSV();
                 if (cachedDataframeCSV) {
-                    // Load the dataframe into Python
-                    const loadResult = runPythonFunction(
+                    const loadResult = await runPythonFunction(
                         'load_master_df_from_csv',
                         cachedDataframeCSV
                     );
@@ -233,12 +220,13 @@ function AppContent() {
                 }
 
                 // Get date range from Python after loading dataframe
-                const dateRangeResult = runPythonFunction('get_date_range');
+                const dateRangeResult =
+                    await runPythonFunction('get_date_range');
                 if (dateRangeResult.error) {
                     throw new Error(dateRangeResult.error);
                 }
 
-                setupAnalysisData(
+                await setupAnalysisData(
                     dateRangeResult.min_date,
                     dateRangeResult.max_date
                 );
@@ -282,7 +270,7 @@ function AppContent() {
             }
 
             // Run initial analysis
-            const initialResults = runPythonFunction(
+            const initialResults = await runPythonFunction(
                 'perform_initial_analysis',
                 historyData
             );
@@ -294,7 +282,7 @@ function AppContent() {
             }
 
             // Get date range from the loaded dataframe
-            const dateRangeResult = runPythonFunction('get_date_range');
+            const dateRangeResult = await runPythonFunction('get_date_range');
             if (dateRangeResult.error) {
                 alert(`Date Range Error: ${dateRangeResult.error}`);
                 setCurrentScreen('upload');
@@ -304,19 +292,16 @@ function AppContent() {
             const { min_date, max_date } = dateRangeResult;
 
             // Use common setup function
-            setupAnalysisData(min_date, max_date);
+            await setupAnalysisData(min_date, max_date);
 
             // Cache if enabled - cache the processed CSV from key statistics
             if (cacheProcessedCSV) {
-                const filtersJson = JSON.stringify([]);
-                const keyStatsForCache = runPythonFunction(
-                    'get_key_statistics_card_data',
-                    filtersJson
-                );
-                setCachedCSV(keyStatsForCache);
+                setCachedCSV(keyStatisticsData);
 
                 // Also cache the master dataframe as CSV
-                const csvExport = runPythonFunction('export_master_df_to_csv');
+                const csvExport = await runPythonFunction(
+                    'export_master_df_to_csv'
+                );
                 if (csvExport.csv) {
                     await saveDataframeCSV(csvExport.csv);
                 }
