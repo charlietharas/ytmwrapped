@@ -55,6 +55,8 @@ function AppContent() {
     const [weeksData, setWeeksData] = useState(null);
     const [monthsData, setMonthsData] = useState(null);
     const [yearsData, setYearsData] = useState(null);
+    const [artistsData, setArtistsData] = useState(null);
+    const [songsData, setSongsData] = useState(null);
 
     const updateCardsWithFilters = useCallback(
         async (filtersJson) => {
@@ -72,6 +74,8 @@ function AppContent() {
                     updatedWeeks,
                     updatedMonths,
                     updatedYears,
+                    updatedArtists,
+                    updatedSongs,
                 ] = await Promise.all([
                     runPythonFunction('get_key_statistics_card_data'),
                     runPythonFunction('get_timeline_card_data'),
@@ -79,6 +83,8 @@ function AppContent() {
                     runPythonFunction('get_week_card_data'),
                     runPythonFunction('get_month_card_data'),
                     runPythonFunction('get_year_card_data'),
+                    runPythonFunction('get_artists_data'),
+                    runPythonFunction('get_songs_data'),
                 ]);
 
                 setKeyStatisticsData(updatedKeyStats);
@@ -87,6 +93,8 @@ function AppContent() {
                 setWeeksData(updatedWeeks);
                 setMonthsData(updatedMonths);
                 setYearsData(updatedYears);
+                setArtistsData(updatedArtists);
+                setSongsData(updatedSongs);
             } catch (error) {
                 console.error('Error updating card data with filters:', error);
             }
@@ -99,6 +107,8 @@ function AppContent() {
             setWeeksData,
             setMonthsData,
             setYearsData,
+            setArtistsData,
+            setSongsData,
         ]
     );
 
@@ -216,6 +226,8 @@ function AppContent() {
         setWeeksData,
         setMonthsData,
         setYearsData,
+        setArtistsData,
+        setSongsData,
     ]);
 
     const handleFilesSelected = async (files, useCache = false) => {
@@ -389,6 +401,8 @@ function AppContent() {
                                 weeksData={weeksData}
                                 monthsData={monthsData}
                                 yearsData={yearsData}
+                                artistsData={artistsData}
+                                songsData={songsData}
                             />
                         )}
                     </>

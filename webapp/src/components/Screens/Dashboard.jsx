@@ -8,6 +8,8 @@ import WeeksCard from '../Cards/WeeksCard';
 import MonthCard from '../Cards/MonthsCard';
 import YearCard from '../Cards/YearsCard';
 import TimeSelectorCard from '../Cards/TimeSelectorCard';
+import ArtistsCard from '../Cards/ArtistsCard';
+import SongsCard from '../Cards/SongsCard';
 
 const Dashboard = ({
     keyStatisticsData,
@@ -16,6 +18,8 @@ const Dashboard = ({
     weeksData,
     monthsData,
     yearsData,
+    artistsData,
+    songsData,
 }) => {
     const { isAnalysisComplete } = useApp();
     const [showHistoryExplorer, setShowHistoryExplorer] = useState(true);
@@ -135,27 +139,9 @@ const Dashboard = ({
 
                     <h2 className="section-header">Cumulative Statistics</h2>
 
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>Top 20 Artists</h3>
-                        </div>
-                        <div className="card-content">
-                            <p className="card-description">
-                                TODO: Bar chart of most played artists
-                            </p>
-                        </div>
-                    </div>
+                    <ArtistsCard data={artistsData} />
 
-                    <div className="card">
-                        <div className="card-header">
-                            <h3>Top 20 Songs</h3>
-                        </div>
-                        <div className="card-content">
-                            <p className="card-description">
-                                TODO: Bar chart of most played songs
-                            </p>
-                        </div>
-                    </div>
+                    <SongsCard data={songsData} />
 
                     <div className="card">
                         <div className="card-header">

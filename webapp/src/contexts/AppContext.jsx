@@ -112,6 +112,20 @@ export const AppProvider = ({ children }) => {
         }));
     }, []);
 
+    const clearArtistsFilters = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            artists: [],
+        }));
+    }, []);
+
+    const clearSongsFilters = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            songs: [],
+        }));
+    }, []);
+
     const hasActiveFilters = useCallback(
         (considerDateRange = false) => {
             return (
@@ -157,6 +171,8 @@ export const AppProvider = ({ children }) => {
         clearWeeksFilters,
         clearMonthsFilters,
         clearYearsFilters,
+        clearArtistsFilters,
+        clearSongsFilters,
         hasActiveFilters,
     };
 

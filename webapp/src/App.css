@@ -316,6 +316,16 @@ input[type='text'] {
     height: 350px;
 }
 
+/* Horizontal bar charts for artists and songs */
+.chart-wrapper.horizontal-bars {
+    height: 400px;
+    overflow: hidden;
+}
+
+.chart-wrapper.horizontal-bars canvas {
+    max-height: 100%;
+}
+
 .list-wrapper {
     display: flex;
     flex-direction: column;
