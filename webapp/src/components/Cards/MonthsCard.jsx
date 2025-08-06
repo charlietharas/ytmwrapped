@@ -1,4 +1,11 @@
-import React, { useMemo, memo, useRef, useEffect, useState } from 'react';
+import React, {
+    useMemo,
+    memo,
+    useRef,
+    useEffect,
+    useState,
+    useCallback,
+} from 'react';
 import * as Chart from 'chart.js';
 import { useApp } from '../../hooks/useApp';
 import { chartColors } from '../../utils/chartColors';
@@ -6,13 +13,38 @@ import { chartColors } from '../../utils/chartColors';
 Chart.Chart.register(...Chart.registerables);
 
 const MonthCard = ({ data }) => {
-    const { hasActiveFilters, clearMonthsFilters, filters } = useApp();
+    const { hasActiveFilters, clearMonthsFilters, filters, updateFilter } =
+        useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
     const isFiltered = hasActiveFilters();
     const showStacked = isFiltered && !isZoomed;
+
+    const handleChartClick = useCallback(
+        (event) => {
+            const points = chartInstance.current.getElementsAtEventForMode(
+                event,
+                'nearest',
+                { intersect: true },
+                true
+            );
+            if (points.length) {
+                const firstPoint = points[0];
+                const monthIndex = firstPoint.index + 1; // months are 1-based
+
+                const newMonths = filters.months.includes(monthIndex)
+                    ? filters.months.filter((m) => m !== monthIndex)
+                    : [...filters.months, monthIndex];
+                updateFilter(
+                    'months',
+                    newMonths.sort((a, b) => a - b)
+                );
+            }
+        },
+        [filters.months, updateFilter]
+    );
 
     const chartConfig = useMemo(() => {
         if (!data || data.error) {
@@ -74,6 +106,7 @@ const MonthCard = ({ data }) => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                onClick: handleChartClick,
                 interaction: {
                     mode: 'index',
                     intersect: false,
@@ -133,7 +166,7 @@ const MonthCard = ({ data }) => {
                 },
             },
         };
-    }, [data, isFiltered, isZoomed, showStacked]);
+    }, [data, isFiltered, isZoomed, showStacked, handleChartClick]);
 
     useEffect(() => {
         if (!chartRef.current) return;
