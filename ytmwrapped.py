@@ -115,8 +115,6 @@ def _apply_filters(df, filters):
             category_mask = df['time_local'].dt.dayofweek.isin(values)
         elif filter_type == 'month':
             category_mask = df['time_local'].dt.month.isin(values)
-        elif filter_type == 'year':
-            category_mask = df['time_local'].dt.year.isin(values)
         elif filter_type == 'dateRange':
             for date_range in values:
                 start_date = pd.to_datetime(date_range['start'], utc=True)
@@ -204,13 +202,15 @@ def get_timeline_card_data():
         if period_df is None or period_df.empty:
              return {'labels': [], 'datasets': []}
 
-        start_date = pd.to_datetime(min_date, utc=True)
-        end_date = pd.to_datetime(max_date, utc=True)
-
-        total_counts = period_df.groupby(period_df['time'].dt.date).size()
-        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(period_df['time'].dt.date).size()
+        time_local = period_df['time_local']
         
-        all_days_range = pd.date_range(start=start_date.date(), end=end_date.date(), freq='D')
+        total_counts = period_df.groupby(time_local.dt.date).size()
+        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.date).size()
+        
+        start_date = time_local.min().date()
+        end_date = time_local.max().date()
+
+        all_days_range = pd.date_range(start=start_date, end=end_date, freq='D')
         total_counts = total_counts.reindex(all_days_range, fill_value=0)
         filtered_counts = filtered_counts.reindex(all_days_range, fill_value=0)
 
