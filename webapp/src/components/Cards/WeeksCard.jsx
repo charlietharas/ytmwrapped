@@ -1,4 +1,11 @@
-import React, { useMemo, memo, useRef, useEffect, useState } from 'react';
+import React, {
+    useMemo,
+    memo,
+    useRef,
+    useEffect,
+    useState,
+    useCallback,
+} from 'react';
 import * as Chart from 'chart.js';
 import { useApp } from '../../hooks/useApp';
 import { chartColors } from '../../utils/chartColors';
@@ -6,13 +13,38 @@ import { chartColors } from '../../utils/chartColors';
 Chart.Chart.register(...Chart.registerables);
 
 const WeeksCard = ({ data }) => {
-    const { hasActiveFilters, clearWeeksFilters, filters } = useApp();
+    const { hasActiveFilters, clearWeeksFilters, filters, updateFilter } =
+        useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
     const isFiltered = hasActiveFilters();
     const showStacked = isFiltered && !isZoomed;
+
+    const handleChartClick = useCallback(
+        (event) => {
+            const points = chartInstance.current.getElementsAtEventForMode(
+                event,
+                'nearest',
+                { intersect: true },
+                true
+            );
+            if (points.length) {
+                const firstPoint = points[0];
+                const dayIndex = firstPoint.index;
+
+                const newDays = filters.daysOfWeek.includes(dayIndex)
+                    ? filters.daysOfWeek.filter((d) => d !== dayIndex)
+                    : [...filters.daysOfWeek, dayIndex];
+                updateFilter(
+                    'daysOfWeek',
+                    newDays.sort((a, b) => a - b)
+                );
+            }
+        },
+        [filters.daysOfWeek, updateFilter]
+    );
 
     const chartConfig = useMemo(() => {
         if (!data || data.error) {
@@ -69,6 +101,7 @@ const WeeksCard = ({ data }) => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                onClick: handleChartClick,
                 interaction: {
                     mode: 'index',
                     intersect: false,
@@ -128,7 +161,7 @@ const WeeksCard = ({ data }) => {
                 },
             },
         };
-    }, [data, isFiltered, isZoomed, showStacked]);
+    }, [data, isFiltered, isZoomed, showStacked, handleChartClick]);
 
     useEffect(() => {
         if (!chartRef.current) return;

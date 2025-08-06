@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../hooks/useApp';
 import HoursFilter from './HoursFilter';
+import WeeksFilter from './WeeksFilter';
 
 const FilterBar = () => {
     const { filters, updateFilter, dateRange, clearAllFilters } = useApp();
@@ -127,16 +128,7 @@ const FilterBar = () => {
 
                 <div className="filter-time-grid">
                     <HoursFilter />
-                    <div className="filter-item">
-                        <label>Day</label>
-                        <button
-                            className="filter-dropdown-trigger"
-                            disabled
-                            title="Uncapped"
-                        >
-                            TODO: Days
-                        </button>
-                    </div>
+                    <WeeksFilter />
                     <div className="filter-item">
                         <label>Month</label>
                         <button
