@@ -115,8 +115,6 @@ def _apply_filters(df, filters):
             category_mask = df['time_local'].dt.dayofweek.isin(values)
         elif filter_type == 'month':
             category_mask = df['time_local'].dt.month.isin(values)
-        elif filter_type == 'year':
-            category_mask = df['time_local'].dt.year.isin(values)
         elif filter_type == 'dateRange':
             for date_range in values:
                 start_date = pd.to_datetime(date_range['start'], utc=True)

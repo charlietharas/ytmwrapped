@@ -131,16 +131,6 @@ const FilterBar = () => {
                     <HoursFilter />
                     <WeeksFilter />
                     <MonthsFilter />
-                    <div className="filter-item">
-                        <label>Year</label>
-                        <button
-                            className="filter-dropdown-trigger"
-                            disabled
-                            title="Uncapped"
-                        >
-                            TODO: Years
-                        </button>
-                    </div>
                 </div>
 
                 <div className="filter-item filter-release-year">

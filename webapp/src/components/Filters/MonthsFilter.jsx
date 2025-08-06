@@ -86,7 +86,10 @@ const MonthsFilter = () => {
                 <div className="filter-dropdown">
                     <div className="filter-dropdown-content">
                         {sortedMonthsForDropdown.map((month) => (
-                            <label key={month.id} className="filter-dropdown-item">
+                            <label
+                                key={month.id}
+                                className="filter-dropdown-item"
+                            >
                                 <input
                                     type="checkbox"
                                     checked={filters.months.includes(month.id)}

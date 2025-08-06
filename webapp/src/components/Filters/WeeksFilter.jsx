@@ -60,7 +60,9 @@ const WeeksFilter = () => {
         }
 
         const selectedDays = filters.daysOfWeek
-            .map((id) => daysOfWeek.find((d) => d.id === id).name.substring(0, 3))
+            .map((id) =>
+                daysOfWeek.find((d) => d.id === id).name.substring(0, 3)
+            )
             .join(', ');
 
         return selectedDays;
@@ -81,10 +83,15 @@ const WeeksFilter = () => {
                 <div className="filter-dropdown">
                     <div className="filter-dropdown-content">
                         {sortedDaysForDropdown.map((day) => (
-                            <label key={day.id} className="filter-dropdown-item">
+                            <label
+                                key={day.id}
+                                className="filter-dropdown-item"
+                            >
                                 <input
                                     type="checkbox"
-                                    checked={filters.daysOfWeek.includes(day.id)}
+                                    checked={filters.daysOfWeek.includes(
+                                        day.id
+                                    )}
                                     onChange={() => handleDayToggle(day.id)}
                                 />
                                 <span>{day.name}</span>

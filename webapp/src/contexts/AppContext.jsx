@@ -18,7 +18,6 @@ export const AppProvider = ({ children }) => {
         hours: [],
         daysOfWeek: [],
         months: [],
-        years: [],
         durationRange: { min: null, max: null },
         genres: [],
         releaseYearRange: { min: null, max: null },
@@ -69,7 +68,6 @@ export const AppProvider = ({ children }) => {
             hours: [],
             daysOfWeek: [],
             months: [],
-            years: [],
             durationRange: { min: null, max: null },
             genres: [],
             releaseYearRange: { min: null, max: null },
@@ -105,13 +103,6 @@ export const AppProvider = ({ children }) => {
         }));
     }, []);
 
-    const clearYearsFilters = useCallback(() => {
-        setFilters((prev) => ({
-            ...prev,
-            years: [],
-        }));
-    }, []);
-
     const clearArtistsFilters = useCallback(() => {
         setFilters((prev) => ({
             ...prev,
@@ -134,7 +125,6 @@ export const AppProvider = ({ children }) => {
                 filters.hours.length > 0 ||
                 filters.daysOfWeek.length > 0 ||
                 filters.months.length > 0 ||
-                filters.years.length > 0 ||
                 filters.genres.length > 0 ||
                 (considerDateRange &&
                     (filters.dateRange.start !== dateRange.start ||
@@ -170,7 +160,6 @@ export const AppProvider = ({ children }) => {
         clearHoursFilters,
         clearWeeksFilters,
         clearMonthsFilters,
-        clearYearsFilters,
         clearArtistsFilters,
         clearSongsFilters,
         hasActiveFilters,

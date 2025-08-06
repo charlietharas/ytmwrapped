@@ -165,9 +165,6 @@ function AppContent() {
                 filters.months.forEach((month) =>
                     activeFilters.push({ type: 'month', value: month })
                 );
-                filters.years.forEach((year) =>
-                    activeFilters.push({ type: 'year', value: year })
-                );
                 filters.genres.forEach((genre) =>
                     activeFilters.push({ type: 'genre', value: genre })
                 );
@@ -225,7 +222,6 @@ function AppContent() {
         setHoursData,
         setWeeksData,
         setMonthsData,
-        setYearsData,
         setArtistsData,
         setSongsData,
     ]);
