@@ -372,6 +372,11 @@ input[type='text'] {
     border-left: 3px solid var(--color-accent);
 }
 
+.data-table tbody tr.selected {
+    background-color: rgba(187, 134, 252, 0.2);
+    font-weight: bold;
+}
+
 .data-table .rank-cell {
     width: 60px;
     text-align: center;

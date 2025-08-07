@@ -3,8 +3,9 @@ import { useApp } from '../../hooks/useApp';
 import HoursFilter from './HoursFilter';
 import WeeksFilter from './WeeksFilter';
 import MonthsFilter from './MonthsFilter';
+import SongsFilter from './SongsFilter';
 
-const FilterBar = () => {
+const FilterBar = ({ songsData }) => {
     const { filters, updateFilter, dateRange, clearAllFilters } = useApp();
 
     const [startDate, setStartDate] = useState('');
@@ -105,16 +106,7 @@ const FilterBar = () => {
                 </div>
 
                 <div className="filter-song-artist">
-                    <div className="filter-item">
-                        <label>Song</label>
-                        <button
-                            className="filter-dropdown-trigger"
-                            disabled
-                            title="Searchable, capped height, selected on top"
-                        >
-                            TODO: Songs
-                        </button>
-                    </div>
+                    <SongsFilter songsData={songsData} />
                     <div className="filter-item">
                         <label>Artist</label>
                         <button

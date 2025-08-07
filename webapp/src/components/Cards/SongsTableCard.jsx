@@ -2,11 +2,19 @@ import React, { useState, useMemo, memo } from 'react';
 import { useApp } from '../../hooks/useApp';
 
 const SongsTableCard = ({ data }) => {
-    const { hasActiveFilters, clearSongsFilters, filters } = useApp();
+    const { hasActiveFilters, clearSongsFilters, filters, updateFilter } =
+        useApp();
     const [searchTerm, setSearchTerm] = useState('');
     const [isZoomed, setIsZoomed] = useState(false);
 
     const isFiltered = hasActiveFilters();
+
+    const handleSongClick = (songName) => {
+        const newSongs = filters.songs.includes(songName)
+            ? filters.songs.filter((s) => s !== songName)
+            : [...filters.songs, songName];
+        updateFilter('songs', newSongs.sort());
+    };
 
     const rankedSongs = useMemo(() => {
         if (!data || data.error || !data.labels) {
@@ -126,11 +134,16 @@ const SongsTableCard = ({ data }) => {
                             {searchedSongs.map((song) => (
                                 <tr
                                     key={song.name}
-                                    className={
+                                    onClick={() => handleSongClick(song.name)}
+                                    className={`${
                                         isFiltered && song.filteredPlays > 0
                                             ? 'highlighted'
                                             : ''
-                                    }
+                                    } ${
+                                        filters.songs.includes(song.name)
+                                            ? 'selected'
+                                            : ''
+                                    }`}
                                 >
                                     <td className="rank-cell">{song.rank}</td>
                                     <td className="name-cell">{song.name}</td>

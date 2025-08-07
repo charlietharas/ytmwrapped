@@ -32,7 +32,7 @@ const Dashboard = ({
 
     return (
         <>
-            <FilterBar />
+            <FilterBar songsData={songsData} />
 
             <div
                 className={`dashboard-container ${showHistoryExplorer ? 'with-history-explorer' : ''}`}
