@@ -11,7 +11,7 @@ const ArtistsFilter = ({ artistsData }) => {
 
     const filteredArtists = useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
-        const filtered = allArtists.filter(artist =>
+        const filtered = allArtists.filter((artist) =>
             artist.toLowerCase().includes(lowercasedFilter)
         );
 
@@ -82,7 +82,10 @@ const ArtistsFilter = ({ artistsData }) => {
                     </div>
                     <div className="filter-dropdown-content">
                         {filteredArtists.slice(0, 10).map((artist) => (
-                            <label key={artist} className="filter-dropdown-item">
+                            <label
+                                key={artist}
+                                className="filter-dropdown-item"
+                            >
                                 <input
                                     type="checkbox"
                                     checked={filters.artists.includes(artist)}
@@ -91,7 +94,7 @@ const ArtistsFilter = ({ artistsData }) => {
                                 <span>{artist}</span>
                             </label>
                         ))}
-                         {filteredArtists.length > 10 && (
+                        {filteredArtists.length > 10 && (
                             <div className="filter-dropdown-info">
                                 ...and {filteredArtists.length - 10} more
                             </div>

@@ -134,7 +134,9 @@ const ArtistsTableCard = ({ data }) => {
                             {searchedArtists.map((artist) => (
                                 <tr
                                     key={artist.name}
-                                    onClick={() => handleArtistClick(artist.name)}
+                                    onClick={() =>
+                                        handleArtistClick(artist.name)
+                                    }
                                     className={`${
                                         isFiltered && artist.filteredPlays > 0
                                             ? 'highlighted'

@@ -11,7 +11,7 @@ const SongsFilter = ({ songsData }) => {
 
     const filteredSongs = useMemo(() => {
         const lowercasedFilter = searchTerm.toLowerCase();
-        const filtered = allSongs.filter(song =>
+        const filtered = allSongs.filter((song) =>
             song.toLowerCase().includes(lowercasedFilter)
         );
 
@@ -93,7 +93,7 @@ const SongsFilter = ({ songsData }) => {
                                 <span>{song}</span>
                             </label>
                         ))}
-                         {filteredSongs.length > 10 && (
+                        {filteredSongs.length > 10 && (
                             <div className="filter-dropdown-info">
                                 ...and {filteredSongs.length - 10} more
                             </div>
