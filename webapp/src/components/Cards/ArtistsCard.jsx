@@ -1,4 +1,11 @@
-import React, { useMemo, memo, useRef, useEffect, useState } from 'react';
+import React, {
+    useMemo,
+    memo,
+    useRef,
+    useEffect,
+    useState,
+    useCallback,
+} from 'react';
 import * as Chart from 'chart.js';
 import { useApp } from '../../hooks/useApp';
 import { chartColors } from '../../utils/chartColors';
@@ -6,13 +13,36 @@ import { chartColors } from '../../utils/chartColors';
 Chart.Chart.register(...Chart.registerables);
 
 const ArtistsCard = ({ data }) => {
-    const { hasActiveFilters, clearArtistsFilters, filters } = useApp();
+    const { hasActiveFilters, clearArtistsFilters, filters, updateFilter } =
+        useApp();
     const [isZoomed, setIsZoomed] = useState(false);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
     const isFiltered = hasActiveFilters();
     const showStacked = isFiltered && !isZoomed;
+
+    const handleChartClick = useCallback(
+        (event) => {
+            if (!chartInstance.current) return;
+            const points = chartInstance.current.getElementsAtEventForMode(
+                event,
+                'nearest',
+                { intersect: true },
+                true
+            );
+            if (points.length) {
+                const firstPoint = points[0];
+                const label =
+                    chartInstance.current.data.labels[firstPoint.index];
+                const newArtists = filters.artists.includes(label)
+                    ? filters.artists.filter((a) => a !== label)
+                    : [...filters.artists, label];
+                updateFilter('artists', newArtists.sort());
+            }
+        },
+        [filters.artists, updateFilter]
+    );
 
     const chartConfig = useMemo(() => {
         if (!data || data.error) {
@@ -149,9 +179,10 @@ const ArtistsCard = ({ data }) => {
                         },
                     },
                 },
+                onClick: handleChartClick,
             },
         };
-    }, [data, isFiltered, isZoomed, showStacked]);
+    }, [data, isFiltered, isZoomed, showStacked, handleChartClick]);
 
     useEffect(() => {
         if (!chartRef.current) return;

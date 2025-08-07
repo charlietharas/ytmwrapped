@@ -4,8 +4,9 @@ import HoursFilter from './HoursFilter';
 import WeeksFilter from './WeeksFilter';
 import MonthsFilter from './MonthsFilter';
 import SongsFilter from './SongsFilter';
+import ArtistsFilter from './ArtistsFilter';
 
-const FilterBar = ({ songsData }) => {
+const FilterBar = ({ songsData, artistsData }) => {
     const { filters, updateFilter, dateRange, clearAllFilters } = useApp();
 
     const [startDate, setStartDate] = useState('');
@@ -107,16 +108,7 @@ const FilterBar = ({ songsData }) => {
 
                 <div className="filter-song-artist">
                     <SongsFilter songsData={songsData} />
-                    <div className="filter-item">
-                        <label>Artist</label>
-                        <button
-                            className="filter-dropdown-trigger"
-                            disabled
-                            title="Searchable, capped height, selected on top"
-                        >
-                            TODO: Artists
-                        </button>
-                    </div>
+                    <ArtistsFilter artistsData={artistsData} />
                 </div>
 
                 <div className="filter-time-grid">
