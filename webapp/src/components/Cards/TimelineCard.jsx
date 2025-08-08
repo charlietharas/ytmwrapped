@@ -1,6 +1,13 @@
 import React, { useState, useMemo, memo, useRef, useEffect } from 'react';
 import * as Chart from 'chart.js';
-import { format, parseISO } from 'date-fns';
+import {
+    format,
+    parseISO,
+    startOfWeek,
+    endOfWeek,
+    startOfMonth,
+    endOfMonth,
+} from 'date-fns';
 import { useApp } from '../../hooks/useApp';
 import { chartColors, commonChartStyles } from '../../utils/chartColors';
 
@@ -50,23 +57,25 @@ const TimelineCard = ({ data }) => {
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
+    const [view, setView] = useState('day'); // 'day', 'week', 'month'
     const [dragStartIndex, setDragStartIndex] = useState(null);
     const [dragEndIndex, setDragEndIndex] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isZoomed, setIsZoomed] = useState(false);
 
     const chartData = useMemo(() => {
-        if (!data?.labels || !data?.datasets) return [];
-        return data.labels.map((date, index) => ({
+        const sourceData = data?.[view];
+        if (!sourceData?.labels || !sourceData?.datasets) return [];
+        return sourceData.labels.map((date, index) => ({
             date,
             timestamp: new Date(date).getTime(),
             count:
-                (data.datasets[0]?.data[index] || 0) +
-                (data.datasets[1]?.data[index] || 0),
-            filtered: data.datasets[0]?.data[index] || 0,
-            other: data.datasets[1]?.data[index] || 0,
+                (sourceData.datasets[0]?.data[index] || 0) +
+                (sourceData.datasets[1]?.data[index] || 0),
+            filtered: sourceData.datasets[0]?.data[index] || 0,
+            other: sourceData.datasets[1]?.data[index] || 0,
         }));
-    }, [data]);
+    }, [data, view]);
 
     const isFiltered = hasActiveFilters(true);
     const displayData = useMemo(() => {
@@ -79,6 +88,13 @@ const TimelineCard = ({ data }) => {
     }, [chartData, isZoomed, isFiltered, filters.dateRange]);
 
     const showStacked = isFiltered && !isZoomed;
+
+    const handleViewChange = () => {
+        const views = ['day', 'week', 'month'];
+        const currentIndex = views.indexOf(view);
+        const nextIndex = (currentIndex + 1) % views.length;
+        setView(views[nextIndex]);
+    };
 
     // Effect for creating and destroying the chart
     useEffect(() => {
@@ -118,8 +134,16 @@ const TimelineCard = ({ data }) => {
                         borderColor: chartColors.border,
                         borderWidth: 1,
                         callbacks: {
-                            title: (items) =>
-                                format(parseISO(items[0].label), 'MMM d, yyyy'),
+                            title: (items) => {
+                                const date = parseISO(items[0].label);
+                                if (view === 'week') {
+                                    return `Week of ${format(date, 'MMM d, yyyy')}`;
+                                }
+                                if (view === 'month') {
+                                    return format(date, 'MMMM yyyy');
+                                }
+                                return format(date, 'MMM d, yyyy');
+                            },
                             label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}`,
                             footer: (items) =>
                                 showStacked
@@ -138,7 +162,7 @@ const TimelineCard = ({ data }) => {
             chartInstance.current?.destroy();
             chartInstance.current = null;
         };
-    }, [displayData, showStacked]);
+    }, [displayData, showStacked, view]);
 
     // Effect for updating chart data
     useEffect(() => {
@@ -224,12 +248,25 @@ const TimelineCard = ({ data }) => {
                 dragEndIndex !== null &&
                 dragStartIndex !== dragEndIndex
             ) {
-                const start =
+                let start =
                     displayData[Math.min(dragStartIndex, dragEndIndex)]
                         .timestamp;
-                const end =
+                let end =
                     displayData[Math.max(dragStartIndex, dragEndIndex)]
                         .timestamp;
+
+                if (view === 'week') {
+                    start = startOfWeek(new Date(start), {
+                        weekStartsOn: 1,
+                    }).getTime();
+                    end = endOfWeek(new Date(end), {
+                        weekStartsOn: 1,
+                    }).getTime();
+                } else if (view === 'month') {
+                    start = startOfMonth(new Date(start)).getTime();
+                    end = endOfMonth(new Date(end)).getTime();
+                }
+
                 updateFilter('dateRange', { start, end });
                 setIsZoomed(false);
             }
@@ -247,13 +284,36 @@ const TimelineCard = ({ data }) => {
             canvas.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isDragging, displayData, updateFilter, dragStartIndex, dragEndIndex]);
+    }, [
+        isDragging,
+        displayData,
+        updateFilter,
+        dragStartIndex,
+        dragEndIndex,
+        view,
+    ]);
 
     return (
         <div className="card full-width">
             <div className="card-header">
                 <h3>Timeline</h3>
                 <div className="card-header-controls">
+                    <button
+                        id="view-toggle-btn"
+                        title={`Change view to ${view === 'day' ? 'week' : view === 'week' ? 'month' : 'day'}`}
+                        onClick={handleViewChange}
+                        style={{
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            background: 'none',
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            borderRadius: '8px',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            textTransform: 'capitalize'
+                        }}
+                    >
+                        {view}
+                    </button>
                     {isFiltered && (
                         <>
                             <button

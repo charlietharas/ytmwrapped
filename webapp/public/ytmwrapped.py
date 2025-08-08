@@ -200,30 +200,40 @@ def get_timeline_card_data():
     try:
         period_df = filtered_df
         if period_df is None or period_df.empty:
-             return {'labels': [], 'datasets': []}
+            return {'day': {'labels': [], 'datasets': []},
+                    'week': {'labels': [], 'datasets': []},
+                    'month': {'labels': [], 'datasets': []}}
 
-        time_local = period_df['time_local']
-        
-        total_counts = period_df.groupby(time_local.dt.date).size()
-        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.date).size()
-        
-        start_date = time_local.min().date()
-        end_date = time_local.max().date()
+        # Ensure 'time_local' is the index for resampling
+        df_resample = period_df.set_index('time_local')
 
-        all_days_range = pd.date_range(start=start_date, end=end_date, freq='D')
-        total_counts = total_counts.reindex(all_days_range, fill_value=0)
-        filtered_counts = filtered_counts.reindex(all_days_range, fill_value=0)
+        results = {}
+        for period in ['D', 'W-MON', 'M']:
+            # Total counts
+            total_counts = df_resample.resample(period).size()
+            
+            # Filtered counts
+            filtered_counts = df_resample[df_resample['matches_filter'] == 1].resample(period).size()
 
-        combined = pd.DataFrame({'total': total_counts, 'filtered': filtered_counts}).fillna(0)
-        combined['other'] = combined['total'] - combined['filtered']
+            # Create a DataFrame from the resampled data
+            combined = pd.DataFrame({'total': total_counts, 'filtered': filtered_counts}).fillna(0)
+            combined['other'] = combined['total'] - combined['filtered']
+
+            period_name = 'day'
+            if period == 'W-MON':
+                period_name = 'week'
+            elif period == 'M':
+                period_name = 'month'
+
+            results[period_name] = {
+                'labels': combined.index.strftime('%Y-%m-%d').tolist(),
+                'datasets': [
+                    {'label': 'Filtered', 'data': combined['filtered'].astype(int).tolist()},
+                    {'label': 'Other', 'data': combined['other'].astype(int).tolist()}
+                ]
+            }
         
-        return {
-            'labels': combined.index.strftime('%Y-%m-%d').tolist(),
-            'datasets': [
-                {'label': 'Filtered', 'data': combined['filtered'].astype(int).tolist()},
-                {'label': 'Other', 'data': combined['other'].astype(int).tolist()}
-            ]
-        }
+        return results
     except Exception as e:
         return {"error": f"Error in Timeline: {str(e)}"}
 

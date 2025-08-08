@@ -1438,6 +1438,27 @@ input[type='text'] {
     background-color: var(--color-accent-hover);
 }
 
+.filter-dropdown-search {
+    padding: 0.2rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.filter-search-input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    font-size: 0.85rem !important;
+    box-sizing: border-box;
+}
+
+.filter-search-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
 .filter-dropdown-item input[type='checkbox'] {
     margin-right: 0.5rem;
 }
