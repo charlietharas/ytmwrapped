@@ -117,8 +117,8 @@ def _apply_filters(df, filters):
             category_mask = df['time_local'].dt.month.isin(values)
         elif filter_type == 'dateRange':
             for date_range in values:
-                start_date = pd.to_datetime(date_range['start'], utc=True)
-                end_date = pd.to_datetime(date_range['end'], utc=True)
+                start_date = pd.to_datetime(date_range['start'], utc=True).normalize()
+                end_date = pd.to_datetime(date_range['end'], utc=True).normalize() + pd.Timedelta(days=1, microseconds=-1)
                 range_mask = (df['time'] >= start_date) & (df['time'] <= end_date)
                 category_mask |= range_mask
         
@@ -138,7 +138,7 @@ def _get_filtered_df(filters_json="[]", filter_by_date=True, timezone="UTC"):
             grouped_filters.setdefault(filter_type, []).append(filter_value)
 
     start_date = pd.to_datetime(min_date, utc=True)
-    end_date = pd.to_datetime(max_date, utc=True) + pd.Timedelta(days=1, seconds=-1)
+    end_date = pd.to_datetime(max_date, utc=True)
 
     if filter_by_date:
         found_date_range = False
@@ -196,9 +196,9 @@ def get_key_statistics_card_data():
         return {"error": f"Error in Key Statistics: {str(e)}"}
 
 def get_timeline_card_data():
-    global filtered_df
+    global filtered_truncated_df
     try:
-        period_df = filtered_df
+        period_df = filtered_truncated_df
         if period_df is None or period_df.empty:
             return {'day': {'labels': [], 'datasets': []},
                     'week': {'labels': [], 'datasets': []},
@@ -220,13 +220,14 @@ def get_timeline_card_data():
             combined['other'] = combined['total'] - combined['filtered']
 
             period_name = 'day'
+            labels = combined.index
             if period == 'W-MON':
                 period_name = 'week'
             elif period == 'M':
                 period_name = 'month'
 
             results[period_name] = {
-                'labels': combined.index.strftime('%Y-%m-%d').tolist(),
+                'labels': labels.strftime('%Y-%m-%d').tolist(),
                 'datasets': [
                     {'label': 'Filtered', 'data': combined['filtered'].astype(int).tolist()},
                     {'label': 'Other', 'data': combined['other'].astype(int).tolist()}

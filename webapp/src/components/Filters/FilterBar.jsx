@@ -13,23 +13,34 @@ const FilterBar = ({ songsData, artistsData }) => {
     const [endDate, setEndDate] = useState('');
 
     useEffect(() => {
-        setStartDate(
-            filters.dateRange.start
-                ? new Date(filters.dateRange.start).toISOString().split('T')[0]
-                : ''
-        );
-        setEndDate(
-            filters.dateRange.end
-                ? new Date(filters.dateRange.end).toISOString().split('T')[0]
-                : ''
-        );
+        const toYYYYMMDD = (timestamp) => {
+            const d = new Date(timestamp);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        setStartDate(filters.dateRange.start ? toYYYYMMDD(filters.dateRange.start) : '');
+        setEndDate(filters.dateRange.end ? toYYYYMMDD(filters.dateRange.end) : '');
     }, [filters.dateRange]);
 
     const handleDateUpdate = () => {
-        let newStart = startDate
-            ? new Date(startDate).getTime()
-            : dateRange.start;
-        let newEnd = endDate ? new Date(endDate).getTime() : dateRange.end;
+        let newStart, newEnd;
+
+        if (startDate) {
+            const [year, month, day] = startDate.split('-').map(Number);
+            newStart = new Date(year, month - 1, day).getTime();
+        } else {
+            newStart = dateRange.start;
+        }
+
+        if (endDate) {
+            const [year, month, day] = endDate.split('-').map(Number);
+            newEnd = new Date(year, month - 1, day, 23, 59, 59, 999).getTime();
+        } else {
+            newEnd = dateRange.end;
+        }
 
         if (newStart < dateRange.start) newStart = dateRange.start;
         if (newStart > dateRange.end) newStart = dateRange.end;

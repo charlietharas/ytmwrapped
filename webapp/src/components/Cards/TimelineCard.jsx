@@ -80,10 +80,12 @@ const TimelineCard = ({ data }) => {
     const isFiltered = hasActiveFilters(true);
     const displayData = useMemo(() => {
         if (!isZoomed || !isFiltered) return chartData;
+        
+        const { start, end } = filters.dateRange;
+        if (start === null || end === null) return chartData;
+
         return chartData.filter(
-            (d) =>
-                d.timestamp >= filters.dateRange.start &&
-                d.timestamp <= filters.dateRange.end
+            (d) => d.timestamp >= start && d.timestamp <= end
         );
     }, [chartData, isZoomed, isFiltered, filters.dateRange]);
 
@@ -245,8 +247,7 @@ const TimelineCard = ({ data }) => {
             if (
                 isDragging &&
                 dragStartIndex !== null &&
-                dragEndIndex !== null &&
-                dragStartIndex !== dragEndIndex
+                dragEndIndex !== null
             ) {
                 let start =
                     displayData[Math.min(dragStartIndex, dragEndIndex)]
@@ -255,7 +256,10 @@ const TimelineCard = ({ data }) => {
                     displayData[Math.max(dragStartIndex, dragEndIndex)]
                         .timestamp;
 
-                if (view === 'week') {
+                if (view === 'day') {
+                    start = startOfDay(new Date(start)).getTime();
+                    end = endOfDay(new Date(end)).getTime();
+                } else if (view === 'week') {
                     start = startOfWeek(new Date(start), {
                         weekStartsOn: 1,
                     }).getTime();
