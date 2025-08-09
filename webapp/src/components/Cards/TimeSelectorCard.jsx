@@ -48,7 +48,8 @@ const TimeSelectorCard = () => {
                 new Date(year, month - 1, (week - 1) * 7 + 1),
                 { weekStartsOn: 1 }
             );
-            startDate = weekStart < firstDayOfMonth ? firstDayOfMonth : weekStart;
+            startDate =
+                weekStart < firstDayOfMonth ? firstDayOfMonth : weekStart;
             endDate = endOfWeek(startDate, { weekStartsOn: 1 });
         } else if (year && month) {
             startDate = new Date(year, month - 1, 1);
@@ -124,50 +125,105 @@ const TimeSelectorCard = () => {
         if (!selectedYear || !dateRange.start || !dateRange.end) return [];
         const startDate = new Date(dateRange.start);
         const endDate = new Date(dateRange.end);
-        const startMonth = selectedYear === startDate.getFullYear() ? startDate.getMonth() : 0;
-        const endMonth = selectedYear === endDate.getFullYear() ? endDate.getMonth() : 11;
+        const startMonth =
+            selectedYear === startDate.getFullYear() ? startDate.getMonth() : 0;
+        const endMonth =
+            selectedYear === endDate.getFullYear() ? endDate.getMonth() : 11;
         const months = [];
-        for (let month = startMonth; month <= endMonth; month++) months.push(month + 1);
+        for (let month = startMonth; month <= endMonth; month++)
+            months.push(month + 1);
         return months;
     }, [selectedYear, dateRange]);
 
     const availableWeeks = useMemo(() => {
         if (!selectedYear || !selectedMonth) return [];
-        const daysInMonth = getDaysInMonth(new Date(selectedYear, selectedMonth - 1));
-        return [...Array(Math.ceil(daysInMonth / 7)).keys()].map(i => i + 1);
+        const daysInMonth = getDaysInMonth(
+            new Date(selectedYear, selectedMonth - 1)
+        );
+        return [...Array(Math.ceil(daysInMonth / 7)).keys()].map((i) => i + 1);
     }, [selectedYear, selectedMonth]);
 
     const availableDays = useMemo(() => {
         if (!selectedYear || !selectedMonth || !selectedWeek) return [];
-        const weekStart = startOfWeek(new Date(selectedYear, selectedMonth - 1, (selectedWeek - 1) * 7 + 1), { weekStartsOn: 1 });
+        const weekStart = startOfWeek(
+            new Date(
+                selectedYear,
+                selectedMonth - 1,
+                (selectedWeek - 1) * 7 + 1
+            ),
+            { weekStartsOn: 1 }
+        );
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
         return eachDayOfInterval({ start: weekStart, end: weekEnd })
-            .filter(day => day.getMonth() + 1 === selectedMonth && isWithinInterval(day, { start: new Date(dateRange.start), end: new Date(dateRange.end) }))
-            .map(day => day.getDate());
+            .filter(
+                (day) =>
+                    day.getMonth() + 1 === selectedMonth &&
+                    isWithinInterval(day, {
+                        start: new Date(dateRange.start),
+                        end: new Date(dateRange.end),
+                    })
+            )
+            .map((day) => day.getDate());
     }, [selectedYear, selectedMonth, selectedWeek, dateRange]);
 
     const getOrdinalSuffix = (num) => {
-        const j = num % 10, k = num % 100;
-        if (j === 1 && k !== 11) return num + "st";
-        if (j === 2 && k !== 12) return num + "nd";
-        if (j === 3 && k !== 13) return num + "rd";
-        return num + "th";
+        const j = num % 10,
+            k = num % 100;
+        if (j === 1 && k !== 11) return num + 'st';
+        if (j === 2 && k !== 12) return num + 'nd';
+        if (j === 3 && k !== 13) return num + 'rd';
+        return num + 'th';
     };
 
     const renderBreadcrumb = () => {
         const items = [];
-        if (selectedYear) items.push(<span key="year" className="breadcrumb-item">{selectedYear}</span>);
-        if (selectedMonth) items.push(<span key="sep1" className="breadcrumb-separator">›</span>, <span key="month" className="breadcrumb-item">{monthNames[selectedMonth - 1]}</span>);
-        if (selectedWeek) items.push(<span key="sep2" className="breadcrumb-separator">›</span>, <span key="week" className="breadcrumb-item">Week {selectedWeek}</span>);
-        if (selectedDay) items.push(<span key="sep3" className="breadcrumb-separator">›</span>, <span key="day" className="breadcrumb-item">{getOrdinalSuffix(selectedDay)}</span>);
-        return items.length > 0 ? <div className="time-selector-breadcrumb">{items}</div> : null;
+        if (selectedYear)
+            items.push(
+                <span key="year" className="breadcrumb-item">
+                    {selectedYear}
+                </span>
+            );
+        if (selectedMonth)
+            items.push(
+                <span key="sep1" className="breadcrumb-separator">
+                    ›
+                </span>,
+                <span key="month" className="breadcrumb-item">
+                    {monthNames[selectedMonth - 1]}
+                </span>
+            );
+        if (selectedWeek)
+            items.push(
+                <span key="sep2" className="breadcrumb-separator">
+                    ›
+                </span>,
+                <span key="week" className="breadcrumb-item">
+                    Week {selectedWeek}
+                </span>
+            );
+        if (selectedDay)
+            items.push(
+                <span key="sep3" className="breadcrumb-separator">
+                    ›
+                </span>,
+                <span key="day" className="breadcrumb-item">
+                    {getOrdinalSuffix(selectedDay)}
+                </span>
+            );
+        return items.length > 0 ? (
+            <div className="time-selector-breadcrumb">{items}</div>
+        ) : null;
     };
 
     if (!dateRange.start || !dateRange.end) {
         return (
             <div className="card">
-                <div className="card-header"><h3>Time Period Selector</h3></div>
-                <div className="card-content"><p className="card-description">Loading date range...</p></div>
+                <div className="card-header">
+                    <h3>Time Period Selector</h3>
+                </div>
+                <div className="card-content">
+                    <p className="card-description">Loading date range...</p>
+                </div>
             </div>
         );
     }
@@ -178,20 +234,34 @@ const TimeSelectorCard = () => {
                 <h3>Time Period Selector</h3>
                 {navigationLevel !== 'year' && (
                     <div className="card-header-controls">
-                        <button className="time-selector-back-btn" onClick={handleBack} title="Go back">←</button>
+                        <button
+                            className="time-selector-back-btn"
+                            onClick={handleBack}
+                            title="Go back"
+                        >
+                            ←
+                        </button>
                     </div>
                 )}
             </div>
             <div className="card-content">
-                <p className="card-description">Navigate through your music history</p>
+                <p className="card-description">
+                    Navigate through your music history
+                </p>
                 {renderBreadcrumb()}
                 <div className="time-selector-container">
                     {navigationLevel === 'year' && (
                         <div className="time-selector-grid">
                             <h4>Select Year</h4>
                             <div className="time-selector-options">
-                                {availableYears.map(year => (
-                                    <button key={year} className={`time-selector-option ${selectedYear === year ? 'selected' : ''}`} onClick={() => handleYearSelect(year)}>{year}</button>
+                                {availableYears.map((year) => (
+                                    <button
+                                        key={year}
+                                        className={`time-selector-option ${selectedYear === year ? 'selected' : ''}`}
+                                        onClick={() => handleYearSelect(year)}
+                                    >
+                                        {year}
+                                    </button>
                                 ))}
                             </div>
                         </div>
@@ -200,28 +270,52 @@ const TimeSelectorCard = () => {
                         <div className="time-selector-grid">
                             <h4>Select Month in {selectedYear}</h4>
                             <div className="time-selector-options">
-                                {availableMonths.map(month => (
-                                    <button key={month} className={`time-selector-option ${selectedMonth === month ? 'selected' : ''}`} onClick={() => handleMonthSelect(month)}>{monthNames[month - 1]}</button>
+                                {availableMonths.map((month) => (
+                                    <button
+                                        key={month}
+                                        className={`time-selector-option ${selectedMonth === month ? 'selected' : ''}`}
+                                        onClick={() => handleMonthSelect(month)}
+                                    >
+                                        {monthNames[month - 1]}
+                                    </button>
                                 ))}
                             </div>
                         </div>
                     )}
                     {navigationLevel === 'week' && (
                         <div className="time-selector-grid">
-                            <h4>Select Week in {monthNames[selectedMonth - 1]} {selectedYear}</h4>
+                            <h4>
+                                Select Week in {monthNames[selectedMonth - 1]}{' '}
+                                {selectedYear}
+                            </h4>
                             <div className="time-selector-options">
-                                {availableWeeks.map(week => (
-                                    <button key={week} className={`time-selector-option ${selectedWeek === week ? 'selected' : ''}`} onClick={() => handleWeekSelect(week)}>{getOrdinalSuffix(week)} week</button>
+                                {availableWeeks.map((week) => (
+                                    <button
+                                        key={week}
+                                        className={`time-selector-option ${selectedWeek === week ? 'selected' : ''}`}
+                                        onClick={() => handleWeekSelect(week)}
+                                    >
+                                        {getOrdinalSuffix(week)} week
+                                    </button>
                                 ))}
                             </div>
                         </div>
                     )}
                     {navigationLevel === 'day' && (
                         <div className="time-selector-grid">
-                            <h4>Select Day in Week {selectedWeek} of {monthNames[selectedMonth - 1]} {selectedYear}</h4>
+                            <h4>
+                                Select Day in Week {selectedWeek} of{' '}
+                                {monthNames[selectedMonth - 1]} {selectedYear}
+                            </h4>
                             <div className="time-selector-options">
-                                {availableDays.map(day => (
-                                    <button key={day} className={`time-selector-option ${selectedDay === day ? 'selected' : ''}`} onClick={() => handleDaySelect(day)}>{getOrdinalSuffix(day)}</button>
+                                {availableDays.map((day) => (
+                                    <button
+                                        key={day}
+                                        className={`time-selector-option ${selectedDay === day ? 'selected' : ''}`}
+                                        onClick={() => handleDaySelect(day)}
+                                    >
+                                        {getOrdinalSuffix(day)}
+                                    </button>
                                 ))}
                             </div>
                         </div>

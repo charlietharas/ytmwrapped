@@ -3,6 +3,8 @@ import * as Chart from 'chart.js';
 import {
     format,
     parseISO,
+    startOfDay,
+    endOfDay,
     startOfWeek,
     endOfWeek,
     startOfMonth,
@@ -80,7 +82,7 @@ const TimelineCard = ({ data }) => {
     const isFiltered = hasActiveFilters(true);
     const displayData = useMemo(() => {
         if (!isZoomed || !isFiltered) return chartData;
-        
+
         const { start, end } = filters.dateRange;
         if (start === null || end === null) return chartData;
 
@@ -313,7 +315,7 @@ const TimelineCard = ({ data }) => {
                             borderRadius: '8px',
                             padding: '4px 8px',
                             cursor: 'pointer',
-                            textTransform: 'capitalize'
+                            textTransform: 'capitalize',
                         }}
                     >
                         {view}

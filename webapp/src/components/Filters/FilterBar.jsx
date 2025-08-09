@@ -21,8 +21,12 @@ const FilterBar = ({ songsData, artistsData }) => {
             return `${year}-${month}-${day}`;
         };
 
-        setStartDate(filters.dateRange.start ? toYYYYMMDD(filters.dateRange.start) : '');
-        setEndDate(filters.dateRange.end ? toYYYYMMDD(filters.dateRange.end) : '');
+        setStartDate(
+            filters.dateRange.start ? toYYYYMMDD(filters.dateRange.start) : ''
+        );
+        setEndDate(
+            filters.dateRange.end ? toYYYYMMDD(filters.dateRange.end) : ''
+        );
     }, [filters.dateRange]);
 
     const handleDateUpdate = () => {
