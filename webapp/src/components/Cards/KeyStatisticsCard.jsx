@@ -10,9 +10,13 @@ const KeyStatisticsCard = ({ data }) => {
         total_plays = 0,
         total_unique_songs = 0,
         total_unique_artists = 0,
+        mean_replays = 0,
+        replay_quantiles = [0, 0, 0],
         filtered_plays = 0,
         filtered_unique_songs = 0,
         filtered_unique_artists = 0,
+        filtered_mean_replays = 0,
+        filtered_replay_quantiles = [0, 0, 0],
     } = data || {};
 
     return (
@@ -30,6 +34,12 @@ const KeyStatisticsCard = ({ data }) => {
                 <div id="total-unique-artists" className="stat-item">
                     Unique Artists: {total_unique_artists.toLocaleString()}
                 </div>
+                <div id="mean-replays" className="stat-item">
+                    Mean Replays: {mean_replays.toFixed(2)}
+                </div>
+                <div id="median-replays" className="stat-item">
+                    Replay Percentiles (25/50/75%): {replay_quantiles.map(q => q.toLocaleString()).join(' / ')}
+                </div>
 
                 {filtersActive && (
                     <div id="filtered-stats-container">
@@ -44,6 +54,12 @@ const KeyStatisticsCard = ({ data }) => {
                         <div id="filtered-unique-artists" className="stat-item">
                             Unique Artists in Filter:{' '}
                             {filtered_unique_artists.toLocaleString()}
+                        </div>
+                        <div id="filtered-mean-replays" className="stat-item">
+                            Mean Replays in Filter: {filtered_mean_replays.toFixed(2)}
+                        </div>
+                        <div id="filtered-median-replays" className="stat-item">
+                            Replay Percentiles in Filter: {filtered_replay_quantiles.map(q => q.toLocaleString()).join(' / ')}
                         </div>
                     </div>
                 )}

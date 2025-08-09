@@ -180,17 +180,36 @@ def get_key_statistics_card_data():
         period_df = filtered_df
         if period_df is None or period_df.empty:
             return {"total_plays": 0, "total_unique_songs": 0, "total_unique_artists": 0,
-                    "filtered_plays": 0, "filtered_unique_songs": 0, "filtered_unique_artists": 0}
+                    "mean_replays": 0, "replay_quantiles": [0, 0, 0],
+                    "filtered_plays": 0, "filtered_unique_songs": 0, "filtered_unique_artists": 0,
+                    "filtered_mean_replays": 0, "filtered_replay_quantiles": [0, 0, 0]}
 
+        # Unfiltered stats
+        total_replays = period_df['video_id'].value_counts()
+        mean_replays = total_replays.mean()
+        replay_quantiles = total_replays.quantile([0.25, 0.5, 0.75]).tolist()
+
+        # Filtered stats
         period_df_filtered = period_df[period_df['matches_filter'] == 1]
-        
+        if not period_df_filtered.empty:
+            filtered_replays = period_df_filtered['video_id'].value_counts()
+            filtered_mean_replays = filtered_replays.mean()
+            filtered_replay_quantiles = filtered_replays.quantile([0.25, 0.5, 0.75]).tolist()
+        else:
+            filtered_mean_replays = 0
+            filtered_replay_quantiles = [0, 0, 0]
+
         return {
             "total_plays": len(period_df),
             "total_unique_songs": period_df['video_id'].nunique(),
             "total_unique_artists": period_df['artist'].nunique(),
+            "mean_replays": mean_replays,
+            "replay_quantiles": replay_quantiles,
             "filtered_plays": len(period_df_filtered),
             "filtered_unique_songs": period_df_filtered['video_id'].nunique(),
             "filtered_unique_artists": period_df_filtered['artist'].nunique(),
+            "filtered_mean_replays": filtered_mean_replays,
+            "filtered_replay_quantiles": filtered_replay_quantiles,
         }
     except Exception as e:
         return {"error": f"Error in Key Statistics: {str(e)}"}
