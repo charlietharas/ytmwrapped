@@ -38,7 +38,10 @@ const KeyStatisticsCard = ({ data }) => {
                     Mean Replays: {mean_replays.toFixed(2)}
                 </div>
                 <div id="median-replays" className="stat-item">
-                    Replay Percentiles (25/50/75%): {replay_quantiles.map(q => q.toLocaleString()).join(' / ')}
+                    Replay Percentiles (25/50/75%):{' '}
+                    {replay_quantiles
+                        .map((q) => q.toLocaleString())
+                        .join(' / ')}
                 </div>
 
                 {filtersActive && (
@@ -56,10 +59,14 @@ const KeyStatisticsCard = ({ data }) => {
                             {filtered_unique_artists.toLocaleString()}
                         </div>
                         <div id="filtered-mean-replays" className="stat-item">
-                            Mean Replays in Filter: {filtered_mean_replays.toFixed(2)}
+                            Mean Replays in Filter:{' '}
+                            {filtered_mean_replays.toFixed(2)}
                         </div>
                         <div id="filtered-median-replays" className="stat-item">
-                            Replay Percentiles in Filter: {filtered_replay_quantiles.map(q => q.toLocaleString()).join(' / ')}
+                            Replay Percentiles in Filter:{' '}
+                            {filtered_replay_quantiles
+                                .map((q) => q.toLocaleString())
+                                .join(' / ')}
                         </div>
                     </div>
                 )}

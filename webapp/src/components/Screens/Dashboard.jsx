@@ -45,7 +45,10 @@ const Dashboard = ({
                 >
                     {showHistoryExplorer ? '◀' : '▶'}
                 </button>
-                <HistoryExplorer history={historyExplorerData} visible={showHistoryExplorer} />
+                <HistoryExplorer
+                    history={historyExplorerData}
+                    visible={showHistoryExplorer}
+                />
 
                 <div id="results">
                     <TimelineCard data={timelineData} />
