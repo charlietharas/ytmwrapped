@@ -1,0 +1,66 @@
+.history-explorer {
+    background-color: var(--color-bg);
+    border-right: 1px solid var(--color-border);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 1rem 1.5rem 1.5rem 1.5rem; /* Final padding adjustment */
+    box-sizing: border-box;
+}
+
+.history-explorer h2 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem; /* Tightened space below header */
+    color: var(--color-text-primary);
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem; /* Make cards more compact */
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 0.5rem; /* Add some padding to avoid scrollbar overlap */
+}
+
+.history-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0.75rem 1rem; /* Make cards more compact */
+    background-color: var(--color-bg-card);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-border);
+    transition:
+        background-color 0.2s,
+        border-color 0.2s;
+}
+
+.history-item:hover {
+    background-color: #2a2a2a;
+    border-color: var(--color-accent);
+}
+
+.song-artist {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0.5rem; /* Space between text and timestamp */
+}
+
+.song {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: 0.9rem; /* Slightly smaller */
+}
+
+.artist {
+    color: var(--color-text-secondary);
+    font-size: 0.8rem; /* Slightly smaller */
+}
+
+.timestamp {
+    color: var(--color-text-secondary);
+    font-size: 0.75rem; /* Slightly smaller */
+    align-self: flex-end; /* Positions the timestamp to the bottom right */
+}

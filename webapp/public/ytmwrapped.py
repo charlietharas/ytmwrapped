@@ -432,32 +432,24 @@ def get_songs_data():
     except Exception as e:
         return {"error": f"Error in Songs Data: {str(e)}"}
 
-def get_filtered_history(search_term="", page=1, page_size=50):
+def get_history(filters_proxy):
     global filtered_df
     try:
-        period_df = filtered_df
-        if period_df is None:
-            return {"error": "History could not be generated."}
+        if filtered_df is None:
+            return []
 
-        final_df = period_df[period_df['matches_filter'] == 1]
+        history_df = filtered_df[filtered_df['matches_filter'] == 1]
 
-        if search_term:
-            search_mask = final_df['artist_title'].str.contains(search_term, case=False, na=False)
-            final_df = final_df[search_mask]
+        history = history_df[['artist_title', 'time']].to_dict(orient='records')
+        for item in history:
+            item['timestamp'] = item.pop('time').strftime('%Y-%m-%d %H:%M:%S')
+            item['song'] = item['artist_title'].split(' - ')[1] if ' - ' in item['artist_title'] else item['artist_title']
+            item['artist'] = item['artist_title'].split(' - ')[0] if ' - ' in item['artist_title'] else 'Unknown Artist'
+            del item['artist_title']
 
-        total_items = len(final_df)
-        start_index = (page - 1) * page_size
-        paginated_df = final_df.iloc[start_index : start_index + page_size]
-
-        history_list = paginated_df[['artist_title', 'time']].copy()
-        history_list['time'] = history_list['time'].dt.strftime('%Y-%m-%d %H:%M:%S')
-
-        return {
-            "history": history_list.to_dict(orient='records'),
-            "total_items": total_items, "page": page, "page_size": page_size
-        }
+        return history
     except Exception as e:
-        return {"error": f"An error occurred while fetching history: {str(e)}"}
+        return [{"error": f"An error occurred in get_history: {str(e)}"}]
 
 def register_functions():
     function_map = {
@@ -472,13 +464,15 @@ def register_functions():
         "get_week_card_data": get_week_card_data,
         "get_month_card_data": get_month_card_data,
         "get_year_card_data": get_year_card_data,
-        "get_filtered_history": get_filtered_history,
         "get_artists_data": get_artists_data,
         "get_songs_data": get_songs_data,
+        "get_history": get_history,
     }
+    # This part is for Pyodide to bridge Python functions to JavaScript
     import js
     for name, func in function_map.items():
         setattr(js, name, func)
+    # This part is for making the functions callable within the Python script itself
     for name, func in function_map.items():
         globals()[name] = func
 

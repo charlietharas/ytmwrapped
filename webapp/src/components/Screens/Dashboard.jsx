@@ -12,6 +12,7 @@ import ArtistsCard from '../Cards/ArtistsCard';
 import SongsCard from '../Cards/SongsCard';
 import ArtistsTableCard from '../Cards/ArtistsTableCard';
 import SongsTableCard from '../Cards/SongsTableCard';
+import HistoryExplorer from '../HistoryExplorer/HistoryExplorer';
 
 const Dashboard = ({
     keyStatisticsData,
@@ -22,6 +23,7 @@ const Dashboard = ({
     yearsData,
     artistsData,
     songsData,
+    historyExplorerData,
 }) => {
     const { isAnalysisComplete } = useApp();
     const [showHistoryExplorer, setShowHistoryExplorer] = useState(true);
@@ -43,24 +45,7 @@ const Dashboard = ({
                 >
                     {showHistoryExplorer ? '◀' : '▶'}
                 </button>
-                <div
-                    id="history-explorer-container"
-                    className={
-                        showHistoryExplorer
-                            ? 'history-explorer-visible'
-                            : 'history-explorer-hidden'
-                    }
-                >
-                    <h2>History Explorer</h2>
-                    <input
-                        type="text"
-                        placeholder="Search history..."
-                        className="search-input"
-                    />
-                    <div className="history-list">
-                        <p>TODO: Implement lazy-loaded history with filters</p>
-                    </div>
-                </div>
+                <HistoryExplorer history={historyExplorerData} visible={showHistoryExplorer} />
 
                 <div id="results">
                     <TimelineCard data={timelineData} />

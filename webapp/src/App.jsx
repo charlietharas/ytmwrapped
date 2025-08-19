@@ -57,6 +57,7 @@ function AppContent() {
     const [yearsData, setYearsData] = useState(null);
     const [artistsData, setArtistsData] = useState(null);
     const [songsData, setSongsData] = useState(null);
+    const [historyExplorerData, setHistoryExplorerData] = useState([]);
 
     const updateCardsWithFilters = useCallback(
         async (filtersJson) => {
@@ -76,6 +77,7 @@ function AppContent() {
                     updatedYears,
                     updatedArtists,
                     updatedSongs,
+                    updatedHistory,
                 ] = await Promise.all([
                     runPythonFunction('get_key_statistics_card_data'),
                     runPythonFunction('get_timeline_card_data'),
@@ -85,6 +87,7 @@ function AppContent() {
                     runPythonFunction('get_year_card_data'),
                     runPythonFunction('get_artists_data'),
                     runPythonFunction('get_songs_data'),
+                    runPythonFunction('get_history', filters),
                 ]);
 
                 setKeyStatisticsData(updatedKeyStats);
@@ -95,12 +98,14 @@ function AppContent() {
                 setYearsData(updatedYears);
                 setArtistsData(updatedArtists);
                 setSongsData(updatedSongs);
+                setHistoryExplorerData(updatedHistory);
             } catch (error) {
                 console.error('Error updating card data with filters:', error);
             }
         },
         [
             runPythonFunction,
+            filters,
             setKeyStatisticsData,
             setTimelineData,
             setHoursData,
@@ -109,6 +114,7 @@ function AppContent() {
             setYearsData,
             setArtistsData,
             setSongsData,
+            setHistoryExplorerData,
         ]
     );
 
@@ -399,6 +405,7 @@ function AppContent() {
                                 yearsData={yearsData}
                                 artistsData={artistsData}
                                 songsData={songsData}
+                                historyExplorerData={historyExplorerData}
                             />
                         )}
                     </>
