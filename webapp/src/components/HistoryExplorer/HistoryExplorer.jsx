@@ -2,6 +2,7 @@ import React from 'react';
 import './HistoryExplorer.css';
 
 const HistoryExplorer = ({ history, visible }) => {
+    console.log(history);
     return (
         <div className={`history-explorer ${visible ? 'visible' : ''}`}>
             <h2>History Explorer</h2>
@@ -13,7 +14,7 @@ const HistoryExplorer = ({ history, visible }) => {
                                 <span className="song">{item.song}</span>
                                 <span className="artist">{item.artist}</span>
                             </div>
-                            <span className="timestamp">{item.timestamp}</span>
+                            <span className="timestamp">{item.time_local}</span>
                         </div>
                     ))}
             </div>

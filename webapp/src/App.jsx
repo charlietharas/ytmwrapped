@@ -87,7 +87,7 @@ function AppContent() {
                     runPythonFunction('get_year_card_data'),
                     runPythonFunction('get_artists_data'),
                     runPythonFunction('get_songs_data'),
-                    runPythonFunction('get_history', filters),
+                    runPythonFunction('get_history'),
                 ]);
 
                 setKeyStatisticsData(updatedKeyStats);

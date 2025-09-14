@@ -432,22 +432,13 @@ def get_songs_data():
     except Exception as e:
         return {"error": f"Error in Songs Data: {str(e)}"}
 
-def get_history(filters_proxy):
-    global filtered_df
+def get_history():
+    global filtered_truncated_df
     try:
-        if filtered_df is None:
-            return []
-
-        history_df = filtered_df[filtered_df['matches_filter'] == 1]
-
-        history = history_df[['artist_title', 'time']].to_dict(orient='records')
-        for item in history:
-            item['timestamp'] = item.pop('time').strftime('%Y-%m-%d %H:%M:%S')
-            item['song'] = item['artist_title'].split(' - ')[1] if ' - ' in item['artist_title'] else item['artist_title']
-            item['artist'] = item['artist_title'].split(' - ')[0] if ' - ' in item['artist_title'] else 'Unknown Artist'
-            del item['artist_title']
-
-        return history
+        df_copy = filtered_truncated_df.copy()
+        df_copy['time_local'] = df_copy['time_local'].dt.strftime('%Y-%m-%d %H:%M:%S')
+        df_copy['song'] = df_copy['title']  # Rename 'title' to 'song' for consistency
+        return df_copy[['time_local', 'artist', 'song']].to_dict('records')
     except Exception as e:
         return [{"error": f"An error occurred in get_history: {str(e)}"}]
 
