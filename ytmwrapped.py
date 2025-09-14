@@ -2,12 +2,30 @@ import json
 import pandas as pd
 from io import StringIO
 from urllib.parse import urlparse, parse_qs
+import hashlib
 
 master_df = None
 filtered_df = None
 filtered_truncated_df = None
 min_date = None
 max_date = None
+
+# Cache for pre-computed aggregations
+cached_aggregations = {
+    'artists_total': None,
+    'artists_filtered': None,
+    'songs_total': None,
+    'songs_filtered': None,
+    'hourly_total': None,
+    'hourly_filtered': None,
+    'daily_total': None,
+    'daily_filtered': None,
+    'monthly_total': None,
+    'monthly_filtered': None,
+    'yearly_total': None,
+    'yearly_filtered': None,
+    'current_filters_hash': None
+}
 
 def _merge_histories(histories):
     merged_history = []
@@ -166,13 +184,66 @@ def _get_filtered_df(filters_json="[]", filter_by_date=True, timezone="UTC"):
 def generate_filtered_dfs(filters_json="[]", timezone="UTC"):
     global filtered_df, filtered_truncated_df
     try:
-        filtered_df = _get_filtered_df(filters_json, filter_by_date=False, timezone=timezone)
         filtered_truncated_df = _get_filtered_df(filters_json, timezone=timezone)
-        
+
+        filters = json.loads(filters_json)
+        grouped_filters = {}
+        for f in filters:
+            filter_type, filter_value = f.get('type'), f.get('value')
+            if filter_type and filter_value is not None:
+                grouped_filters.setdefault(filter_type, []).append(filter_value)
+
+        # Apply filters to master_df without date filtering
+        if master_df is not None:
+            filtered_df = master_df.copy()
+            filtered_df['time_local'] = filtered_df['time'].dt.tz_convert(timezone)
+            if grouped_filters:
+                filter_mask = _apply_filters(filtered_df, grouped_filters)
+                filtered_df['matches_filter'] = filter_mask.astype(int)
+            else:
+                filtered_df['matches_filter'] = 1
+        else:
+            filtered_df = None
+
+        _compute_aggregations()
+
         return {"success": True}
     except Exception as e:
         return {"error": f"Error in generate_filtered_dfs: {str(e)}"}
 
+def _compute_aggregations():
+    global filtered_truncated_df, cached_aggregations
+
+    if filtered_truncated_df is None or filtered_truncated_df.empty:
+        return
+
+    filters_hash = hashlib.md5(str(filtered_truncated_df['matches_filter'].values.tobytes()).encode()).hexdigest()
+
+    # Skip if aggregations are already computed for these filters
+    if cached_aggregations['current_filters_hash'] == filters_hash:
+        return
+
+    time_local = filtered_truncated_df['time_local']
+
+    cached_aggregations['artists_total'] = filtered_truncated_df.groupby('artist').size()
+    cached_aggregations['artists_filtered'] = filtered_truncated_df[filtered_truncated_df['matches_filter'] == 1].groupby('artist').size()
+
+    cached_aggregations['songs_total'] = filtered_truncated_df.groupby('artist_title').size()
+    cached_aggregations['songs_filtered'] = filtered_truncated_df[filtered_truncated_df['matches_filter'] == 1].groupby('artist_title').size()
+
+    cached_aggregations['hourly_total'] = filtered_truncated_df.groupby(time_local.dt.hour).size()
+    cached_aggregations['hourly_filtered'] = filtered_truncated_df[filtered_truncated_df['matches_filter'] == 1].groupby(time_local.dt.hour).size()
+
+    cached_aggregations['daily_total'] = filtered_truncated_df.groupby(time_local.dt.dayofweek).size()
+    cached_aggregations['daily_filtered'] = filtered_truncated_df[filtered_truncated_df['matches_filter'] == 1].groupby(time_local.dt.dayofweek).size()
+
+    cached_aggregations['monthly_total'] = filtered_truncated_df.groupby(time_local.dt.month).size()
+    cached_aggregations['monthly_filtered'] = filtered_truncated_df[filtered_truncated_df['matches_filter'] == 1].groupby(time_local.dt.month).size()
+
+    cached_aggregations['yearly_total'] = filtered_truncated_df.groupby(time_local.dt.year).size()
+    cached_aggregations['yearly_filtered'] = filtered_truncated_df[filtered_truncated_df['matches_filter'] == 1].groupby(time_local.dt.year).size()
+
+    cached_aggregations['current_filters_hash'] = filters_hash
 
 def get_key_statistics_card_data():
     global filtered_df
@@ -180,17 +251,36 @@ def get_key_statistics_card_data():
         period_df = filtered_df
         if period_df is None or period_df.empty:
             return {"total_plays": 0, "total_unique_songs": 0, "total_unique_artists": 0,
-                    "filtered_plays": 0, "filtered_unique_songs": 0, "filtered_unique_artists": 0}
+                    "mean_replays": 0, "replay_quantiles": [0, 0, 0],
+                    "filtered_plays": 0, "filtered_unique_songs": 0, "filtered_unique_artists": 0,
+                    "filtered_mean_replays": 0, "filtered_replay_quantiles": [0, 0, 0]}
 
+        # Unfiltered stats
+        total_replays = period_df['video_id'].value_counts()
+        mean_replays = total_replays.mean()
+        replay_quantiles = total_replays.quantile([0.25, 0.5, 0.75]).tolist()
+
+        # Filtered stats
         period_df_filtered = period_df[period_df['matches_filter'] == 1]
-        
+        if not period_df_filtered.empty:
+            filtered_replays = period_df_filtered['video_id'].value_counts()
+            filtered_mean_replays = filtered_replays.mean()
+            filtered_replay_quantiles = filtered_replays.quantile([0.25, 0.5, 0.75]).tolist()
+        else:
+            filtered_mean_replays = 0
+            filtered_replay_quantiles = [0, 0, 0]
+
         return {
             "total_plays": len(period_df),
             "total_unique_songs": period_df['video_id'].nunique(),
             "total_unique_artists": period_df['artist'].nunique(),
+            "mean_replays": mean_replays,
+            "replay_quantiles": replay_quantiles,
             "filtered_plays": len(period_df_filtered),
             "filtered_unique_songs": period_df_filtered['video_id'].nunique(),
             "filtered_unique_artists": period_df_filtered['artist'].nunique(),
+            "filtered_mean_replays": filtered_mean_replays,
+            "filtered_replay_quantiles": filtered_replay_quantiles,
         }
     except Exception as e:
         return {"error": f"Error in Key Statistics: {str(e)}"}
@@ -226,8 +316,13 @@ def get_timeline_card_data():
             elif period == 'M':
                 period_name = 'month'
 
+            if period == 'M':
+                formatted_labels = labels.strftime('%b %Y').tolist()
+            else:
+                formatted_labels = labels.strftime('%Y-%m-%d').tolist()
+
             results[period_name] = {
-                'labels': labels.strftime('%Y-%m-%d').tolist(),
+                'labels': formatted_labels,
                 'datasets': [
                     {'label': 'Filtered', 'data': combined['filtered'].astype(int).tolist()},
                     {'label': 'Other', 'data': combined['other'].astype(int).tolist()}
@@ -239,25 +334,28 @@ def get_timeline_card_data():
         return {"error": f"Error in Timeline: {str(e)}"}
 
 def get_hour_card_data():
-    global filtered_truncated_df
+    global filtered_truncated_df, cached_aggregations
     try:
-        period_df = filtered_truncated_df
-        if period_df is None or period_df.empty:
+        if filtered_truncated_df is None or filtered_truncated_df.empty:
             return {'labels': [], 'datasets': []}
 
-        time_local = period_df['time_local']
-        
-        total_counts = period_df.groupby(time_local.dt.hour).size()
-        filtered_counts = period_df[period_df['matches_filter'] == 1].groupby(time_local.dt.hour).size()
-        
+        # Use cached aggregations if available
+        if cached_aggregations['hourly_total'] is not None:
+            total_counts = cached_aggregations['hourly_total']
+            filtered_counts = cached_aggregations['hourly_filtered']
+        else:
+            time_local = filtered_truncated_df['time_local']
+            total_counts = filtered_truncated_df.groupby(time_local.dt.hour).size()
+            filtered_counts = filtered_truncated_df[filtered_truncated_df['matches_filter'] == 1].groupby(time_local.dt.hour).size()
+
         all_hours = pd.Series(index=range(24), dtype=int)
         total_counts = total_counts.reindex(all_hours.index, fill_value=0)
         filtered_counts = filtered_counts.reindex(all_hours.index, fill_value=0)
-        
+
         other_counts = total_counts - filtered_counts
-        
+
         hour_labels = [f"{hour:02d}" for hour in range(24)]
-        
+
         return {
             'labels': hour_labels,
             'datasets': [
@@ -265,7 +363,7 @@ def get_hour_card_data():
                 {'label': 'Other', 'data': other_counts.astype(int).tolist()}
             ]
         }
-            
+
     except Exception as e:
         return {"error": f"Error in Hour: {str(e)}"}
 
@@ -413,32 +511,47 @@ def get_songs_data():
     except Exception as e:
         return {"error": f"Error in Songs Data: {str(e)}"}
 
-def get_filtered_history(search_term="", page=1, page_size=50):
-    global filtered_df
+def get_history(offset=0, limit=1000):
+    global filtered_truncated_df
     try:
-        period_df = filtered_df
-        if period_df is None:
-            return {"error": "History could not be generated."}
+        if filtered_truncated_df is None or filtered_truncated_df.empty:
+            return {
+                "data": [],
+                "total_count": 0,
+                "offset": offset,
+                "limit": limit,
+                "has_more": False
+            }
 
-        final_df = period_df[period_df['matches_filter'] == 1]
+        total_count = len(filtered_truncated_df)
 
-        if search_term:
-            search_mask = final_df['artist_title'].str.contains(search_term, case=False, na=False)
-            final_df = final_df[search_mask]
+        paginated_df = filtered_truncated_df.iloc[offset:offset + limit]
 
-        total_items = len(final_df)
-        start_index = (page - 1) * page_size
-        paginated_df = final_df.iloc[start_index : start_index + page_size]
+        result_data = []
+        for idx, row in paginated_df.iterrows():
+            result_data.append({
+                'time_local': row['time_local'].strftime('%Y-%m-%d %H:%M:%S'),
+                'artist': row['artist'],
+                'song': row['title']
+            })
 
-        history_list = paginated_df[['artist_title', 'time']].copy()
-        history_list['time'] = history_list['time'].dt.strftime('%Y-%m-%d %H:%M:%S')
-
-        return {
-            "history": history_list.to_dict(orient='records'),
-            "total_items": total_items, "page": page, "page_size": page_size
+        result = {
+            'data': result_data,
+            'total_count': total_count,
+            'offset': offset,
+            'limit': limit,
+            'has_more': offset + limit < total_count
         }
+        return result
     except Exception as e:
-        return {"error": f"An error occurred while fetching history: {str(e)}"}
+        return {
+            "error": f"An error occurred in get_history: {str(e)}",
+            "data": [],
+            "total_count": 0,
+            "offset": offset,
+            "limit": limit,
+            "has_more": False
+        }
 
 def register_functions():
     function_map = {
@@ -453,13 +566,15 @@ def register_functions():
         "get_week_card_data": get_week_card_data,
         "get_month_card_data": get_month_card_data,
         "get_year_card_data": get_year_card_data,
-        "get_filtered_history": get_filtered_history,
         "get_artists_data": get_artists_data,
         "get_songs_data": get_songs_data,
+        "get_history": get_history,
     }
+    # This part is for Pyodide to bridge Python functions to JavaScript
     import js
     for name, func in function_map.items():
         setattr(js, name, func)
+    # This part is for making the functions callable within the Python script itself
     for name, func in function_map.items():
         globals()[name] = func
 
